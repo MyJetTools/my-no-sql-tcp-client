@@ -44,4 +44,9 @@ impl Subscribers {
         let result = read_access.get(table_name)?;
         Some(result.clone())
     }
+
+    pub async fn get_tables_to_subscirbe(&self) -> Vec<String> {
+        let read_access = self.subscribers.write().await;
+        read_access.keys().map(|itm| itm.to_string()).collect()
+    }
 }

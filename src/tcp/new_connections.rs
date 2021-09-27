@@ -32,8 +32,6 @@ pub async fn start(
 
                 let socket_connection = Arc::new(socket_connection);
 
-                super::incoming_events::connected(socket_connection.clone()).await;
-
                 process_new_connection(
                     logger.clone(),
                     socket_connection.clone(),
@@ -43,8 +41,6 @@ pub async fn start(
                     subscribers.clone(),
                 )
                 .await;
-
-                super::incoming_events::disconnected(socket_connection).await;
             }
             Err(err) => {
                 logger.write_log(

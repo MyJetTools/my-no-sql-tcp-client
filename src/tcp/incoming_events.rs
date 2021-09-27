@@ -1,45 +1,6 @@
-use std::sync::Arc;
-
 use my_no_sql_tcp_shared::TcpContract;
 
 use crate::subscribers::Subscribers;
-
-use super::SocketConnection;
-
-pub async fn connected(connection: Arc<SocketConnection>) {
-    let connection_id = connection.id;
-    let connected_result = tokio::task::spawn(handle_connected(connection)).await;
-
-    if let Err(err) = connected_result {
-        println!(
-            "Panic at handeling tcp connected event for connection {}. Error: {:?}",
-            connection_id, err
-        );
-    }
-}
-
-async fn handle_connected(connection: Arc<SocketConnection>) {
-    //TODO - Remove if not needed
-    //publishers.new_connection(connection.clone()).await;
-    //subscribers.new_connection(connection).await;
-}
-
-pub async fn disconnected(connection: Arc<SocketConnection>) {
-    let connection_id = connection.id;
-    let connected_result = tokio::task::spawn(handle_disconnected(connection)).await;
-
-    if let Err(err) = connected_result {
-        println!(
-            "Panic at handeling tcp disconnected event for connection {}. Error: {:?}",
-            connection_id, err
-        );
-    }
-}
-
-async fn handle_disconnected(connection: Arc<SocketConnection>) {
-    //TODO -  Remove if not needed
-    //publisher.disconnect(connection.id).await;
-}
 
 pub async fn new_packet(contract: TcpContract, subscribers: &Subscribers) {
     match contract {

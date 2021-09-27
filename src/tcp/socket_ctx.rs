@@ -26,11 +26,6 @@ impl SocketConnection {
         read_access.last_read_time
     }
 
-    pub async fn disconnected(&self) -> bool {
-        let read_access = self.data.read().await;
-        read_access.disconnected
-    }
-
     pub async fn disconnect(&self) {
         let mut write_access = self.data.write().await;
         write_access.disconnect(self.id).await;

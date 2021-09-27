@@ -16,7 +16,12 @@ pub async fn start_new(
     app_name: String,
     subscribers: Arc<Subscribers>,
 ) {
-    super::new_connection::send_init(socket_connection.as_ref(), app_name.as_str()).await;
+    super::new_connection::send_init(
+        socket_connection.as_ref(),
+        app_name.as_str(),
+        subscribers.as_ref(),
+    )
+    .await;
 
     let mut socket_reader = SocketReader::new(read_socket);
 
