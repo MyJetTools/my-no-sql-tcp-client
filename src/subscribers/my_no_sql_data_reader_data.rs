@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashMap};
 use crate::MyNoSqlEntity;
 
 pub struct MyNoSqlDataReaderData<TMyNoSqlEntity: MyNoSqlEntity> {
-    readers: BTreeMap<String, BTreeMap<String, TMyNoSqlEntity>>,
+    pub readers: BTreeMap<String, BTreeMap<String, TMyNoSqlEntity>>,
 }
 
 impl<TMyNoSqlEntity: MyNoSqlEntity> MyNoSqlDataReaderData<TMyNoSqlEntity> {
