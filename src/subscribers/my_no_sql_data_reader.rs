@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::{BTreeMap, HashMap},
+    sync::Arc,
+};
 
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
@@ -15,10 +18,35 @@ pub struct MyNoSqlDataReader<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send> {
 impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned>
     MyNoSqlDataReader<TMyNoSqlEntity>
 {
-    pub fn new() -> Self {
+    pub fn new(table_name: String) -> Self {
         Self {
-            data: RwLock::new(MyNoSqlDataReaderData::new()),
+            data: RwLock::new(MyNoSqlDataReaderData::new(table_name)),
         }
+    }
+
+    pub async fn get_table_snapshot(
+        &self,
+    ) -> Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>> {
+        let reader = self.data.read().await;
+
+        return reader.get_table_snapshot();
+    }
+
+    pub async fn get_by_partition_key(
+        &self,
+        partition_key: &str,
+    ) -> Option<BTreeMap<String, Arc<TMyNoSqlEntity>>> {
+        let reader = self.data.read().await;
+        reader.get_by_partition(partition_key)
+    }
+
+    pub async fn get_entity(
+        &self,
+        partition_key: &str,
+        row_key: &str,
+    ) -> Option<Arc<TMyNoSqlEntity>> {
+        let reader = self.data.read().await;
+        reader.get_entity(partition_key, row_key)
     }
 
     pub fn deserialize<'s>(&self, data: &[u8]) -> TMyNoSqlEntity {
