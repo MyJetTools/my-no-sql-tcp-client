@@ -91,4 +91,16 @@ impl<TMyNoSqlEntity: MyNoSqlEntity> MyNoSqlDataReaderData<TMyNoSqlEntity> {
 
         Some(row.clone())
     }
+
+    pub fn get_by_partition(&self, partition_key: &str) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
+        let partition = self.entities.get(partition_key)?;
+
+        let mut result = Vec::new();
+
+        for item in partition.values() {
+            result.push(item.clone());
+        }
+
+        Some(result)
+    }
 }

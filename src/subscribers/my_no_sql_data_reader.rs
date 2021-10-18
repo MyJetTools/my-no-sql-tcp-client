@@ -21,6 +21,14 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned>
         }
     }
 
+    pub async fn get_by_partition_key(
+        &self,
+        partition_key: &str,
+    ) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
+        let reader = self.data.read().await;
+        reader.get_by_partition(partition_key)
+    }
+
     pub async fn get_entity(
         &self,
         partition_key: &str,
