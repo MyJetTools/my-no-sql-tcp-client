@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
@@ -19,6 +19,15 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned>
         Self {
             data: RwLock::new(MyNoSqlDataReaderData::new()),
         }
+    }
+
+    pub async fn get_entity(
+        &self,
+        partition_key: &str,
+        row_key: &str,
+    ) -> Option<Arc<TMyNoSqlEntity>> {
+        let reader = self.data.read().await;
+        reader.get_entity(partition_key, row_key)
     }
 
     pub fn deserialize<'s>(&self, data: &[u8]) -> TMyNoSqlEntity {
