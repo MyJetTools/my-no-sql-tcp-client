@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{BTreeMap, HashMap},
+    sync::Arc,
+};
 
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
@@ -21,10 +24,18 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned>
         }
     }
 
+    pub async fn get_table_snapshot(
+        &self,
+    ) -> Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>> {
+        let reader = self.data.read().await;
+
+        return reader.get_table_snapshot();
+    }
+
     pub async fn get_by_partition_key(
         &self,
         partition_key: &str,
-    ) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
+    ) -> Option<BTreeMap<String, Arc<TMyNoSqlEntity>>> {
         let reader = self.data.read().await;
         reader.get_by_partition(partition_key)
     }
