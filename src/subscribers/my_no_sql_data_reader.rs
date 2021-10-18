@@ -18,9 +18,9 @@ pub struct MyNoSqlDataReader<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send> {
 impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned>
     MyNoSqlDataReader<TMyNoSqlEntity>
 {
-    pub fn new() -> Self {
+    pub fn new(table_name: String) -> Self {
         Self {
-            data: RwLock::new(MyNoSqlDataReaderData::new()),
+            data: RwLock::new(MyNoSqlDataReaderData::new(table_name)),
         }
     }
 

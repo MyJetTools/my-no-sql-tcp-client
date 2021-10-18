@@ -6,16 +6,21 @@ use std::{
 use crate::MyNoSqlEntity;
 
 pub struct MyNoSqlDataReaderData<TMyNoSqlEntity: MyNoSqlEntity> {
+    table_name: String,
     entities: Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>>,
 }
 
 impl<TMyNoSqlEntity: MyNoSqlEntity> MyNoSqlDataReaderData<TMyNoSqlEntity> {
-    pub fn new() -> Self {
-        Self { entities: None }
+    pub fn new(table_name: String) -> Self {
+        Self {
+            table_name,
+            entities: None,
+        }
     }
 
     fn get_init_table(&mut self) -> &mut BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>> {
         if self.entities.is_none() {
+            println!("Initialized data for table {}", self.table_name);
             self.entities = Some(BTreeMap::new());
             return self.entities.as_mut().unwrap();
         }

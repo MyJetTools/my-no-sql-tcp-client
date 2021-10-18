@@ -30,7 +30,10 @@ impl Subscribers {
             panic!("You already subscribed for the table {}", table_name);
         }
 
-        let new_reader = Arc::new(MyNoSqlDataReader::<TMyNoSqlEntity>::new());
+        let new_reader = Arc::new(MyNoSqlDataReader::<TMyNoSqlEntity>::new(
+            table_name.to_string(),
+        ));
+
         write_access.insert(table_name, new_reader.clone());
 
         new_reader
