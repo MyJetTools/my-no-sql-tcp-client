@@ -38,7 +38,7 @@ impl MyNoSqlTcpConnection {
     }
 
     pub fn start(
-        &mut self,
+        &self,
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
         logger: Arc<dyn Logger + Send + Sync + 'static>,
     ) {
