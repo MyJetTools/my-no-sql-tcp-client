@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::MyNoSqlEntity;
+use my_no_sql_server_abstractions::MyNoSqlEntity;
 
 pub struct MyNoSqlDataReaderData<TMyNoSqlEntity: MyNoSqlEntity> {
     table_name: String,

@@ -1,9 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
+use my_no_sql_server_abstractions::MyNoSqlEntity;
 use serde::de::DeserializeOwned;
 use tokio::sync::RwLock;
-
-use crate::MyNoSqlEntity;
 
 use super::{MyNoSqlDataReader, UpdateEvent};
 

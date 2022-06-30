@@ -1,31 +1,27 @@
 use std::{sync::Arc, time::Duration};
 
+use my_no_sql_server_abstractions::MyNoSqlEntity;
+use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
+use my_tcp_sockets::TcpClient;
+use rust_extensions::{ApplicationStates, Logger};
 use serde::de::DeserializeOwned;
 
-use crate::{
-    logger::{MyLogger, MyLoggerReader},
-    subscribers::{MyNoSqlDataReader, Subscribers},
-    MyNoSqlEntity,
-};
+use crate::{subscribers::MyNoSqlDataReader, tcp_events::TcpEvents};
 
 pub struct MyNoSqlTcpConnection {
-    logger: Option<MyLogger>,
-    host_port: String,
-    app_name: String,
-    subscribers: Arc<Subscribers>,
+    tcp_client: TcpClient,
     pub ping_timeout: Duration,
     pub connect_timeout: Duration,
+    pub tcp_events: Arc<TcpEvents>,
 }
 
 impl MyNoSqlTcpConnection {
     pub fn new(host_port: String, app_name: String) -> Self {
         Self {
-            host_port,
-            app_name,
-            subscribers: Arc::new(Subscribers::new()),
-            logger: Some(MyLogger::new()),
+            tcp_client: TcpClient::new("MyNoSqlClient".to_string(), host_port),
             ping_timeout: Duration::from_secs(3),
             connect_timeout: Duration::from_secs(3),
+            tcp_events: Arc::new(TcpEvents::new(app_name)),
         }
     }
 
@@ -35,32 +31,22 @@ impl MyNoSqlTcpConnection {
         &self,
         table_name: String,
     ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>> {
-        self.subscribers.create_subscriber(table_name).await
+        self.tcp_events
+            .subscribers
+            .create_subscriber(table_name)
+            .await
     }
 
-    pub fn start(&mut self) {
-        let mut logger = None;
-        std::mem::swap(&mut logger, &mut self.logger);
-
-        if logger.is_none() {
-            panic!("Client is already started");
-        }
-
-        tokio::task::spawn(crate::tcp::new_connections::start(
-            Arc::new(logger.unwrap()),
-            self.host_port.clone(),
-            self.app_name.clone(),
-            self.ping_timeout,
-            self.connect_timeout,
-            self.subscribers.clone(),
-        ));
-    }
-
-    pub fn get_logger_reader(&mut self) -> MyLoggerReader {
-        if self.logger.is_none() {
-            panic!("Logger reader can not be extracted because client is already started");
-        }
-
-        self.logger.as_mut().unwrap().get_reader()
+    pub fn start(
+        &mut self,
+        app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
+        logger: Arc<dyn Logger + Send + Sync + 'static>,
+    ) {
+        self.tcp_client.start(
+            Arc::new(|| -> MyNoSqlReaderTcpSerializer { MyNoSqlReaderTcpSerializer::new() }),
+            self.tcp_events.clone(),
+            app_states,
+            logger,
+        )
     }
 }
