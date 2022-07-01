@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use my_no_sql_server_abstractions::MyNoSqlEntity;
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
 use my_tcp_sockets::TcpClient;
-use rust_extensions::{ApplicationStates, Logger};
+use rust_extensions::Logger;
 use serde::de::DeserializeOwned;
 
 use crate::{subscribers::MyNoSqlDataReader, tcp_events::TcpEvents};
@@ -37,16 +37,13 @@ impl MyNoSqlTcpConnection {
             .await
     }
 
-    pub fn start(
-        &self,
-        app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
-        logger: Arc<dyn Logger + Send + Sync + 'static>,
-    ) {
-        self.tcp_client.start(
-            Arc::new(|| -> MyNoSqlReaderTcpSerializer { MyNoSqlReaderTcpSerializer::new() }),
-            self.tcp_events.clone(),
-            app_states,
-            logger,
-        )
+    pub async fn start(&self, logger: Arc<dyn Logger + Send + Sync + 'static>) {
+        self.tcp_client
+            .start(
+                Arc::new(|| -> MyNoSqlReaderTcpSerializer { MyNoSqlReaderTcpSerializer::new() }),
+                self.tcp_events.clone(),
+                logger,
+            )
+            .await
     }
 }
