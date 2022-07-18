@@ -71,7 +71,9 @@ impl<TMyNoSqlEntity: MyNoSqlEntity> MyNoSqlDataReaderData<TMyNoSqlEntity> {
         let entities = self.get_init_table();
 
         for (partition_key, src_entities) in src_data {
-            entities.insert(partition_key.to_string(), BTreeMap::new());
+            if !entities.contains_key(partition_key.as_str()) {
+                entities.insert(partition_key.to_string(), BTreeMap::new());
+            }
 
             let by_partition = entities.get_mut(partition_key.as_str()).unwrap();
 
