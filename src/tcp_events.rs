@@ -58,6 +58,13 @@ impl TcpEvents {
             TcpContract::Error { message } => {
                 panic!("Server error: {}", message);
             }
+            TcpContract::GreetingFromNode {
+                node_location: _,
+                node_version: _,
+            } => {}
+            TcpContract::SubscribeAsNode(_) => {}
+            TcpContract::Unsubscribe(_) => {}
+            TcpContract::TableNotFound(_) => {}
         }
     }
 }
