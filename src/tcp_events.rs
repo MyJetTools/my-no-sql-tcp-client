@@ -61,10 +61,12 @@ impl TcpEvents {
             TcpContract::GreetingFromNode {
                 node_location: _,
                 node_version: _,
+                compress: _,
             } => {}
             TcpContract::SubscribeAsNode(_) => {}
             TcpContract::Unsubscribe(_) => {}
             TcpContract::TableNotFound(_) => {}
+            TcpContract::CompressedPayload(_) => {}
         }
     }
 }
