@@ -61,6 +61,20 @@ pub async fn trigger_old_and_new_table_difference<
         )
         .await;
     }
+
+    for (before_partition_key, before_partition) in before {
+        let mut deleted = LazyVec::new();
+
+        for (_, db_row) in before_partition {
+            deleted.add(db_row);
+        }
+
+        if let Some(deleted_entities) = deleted.get_result() {
+            callbacks
+                .deleted(before_partition_key.as_str(), deleted_entities)
+                .await;
+        }
+    }
 }
 
 pub async fn trigger_partition_difference<
@@ -151,6 +165,18 @@ mod tests {
         data: Mutex<TestCallbacksInner>,
     }
 
+    impl TestCallbacks {
+        pub fn new() -> Self {
+            Self {
+                data: Mutex::new(TestCallbacksInner {
+                    added: HashMap::new(),
+                    updated: HashMap::new(),
+                    deleted: HashMap::new(),
+                }),
+            }
+        }
+    }
+
     #[async_trait::async_trait]
     impl MyNoSqlDataRaderCallBacks<TestRow> for TestCallbacks {
         async fn added(&self, partition_key: &str, entities: Vec<Arc<TestRow>>) {
@@ -227,20 +253,89 @@ mod tests {
     }
 
     #[tokio::test]
-    pub async fn test_brand_new_table() {
-        let mut before = BTreeMap::new();
+    pub async fn test_we_had_data_in_table_and_new_table_is_empty() {
+        let test_callback = TestCallbacks::new();
 
-        let mut partition_rows = BTreeMap::new();
+        let mut before_rows = BTreeMap::new();
 
-        partition_rows.insert(
-            "PK1",
+        before_rows.insert(
+            "RK1".to_string(),
             Arc::new(TestRow::new("PK1".to_string(), "RK1".to_string(), 1)),
         );
-        partition_rows.insert(
-            "PK1",
+        before_rows.insert(
+            "RK2".to_string(),
             Arc::new(TestRow::new("PK1".to_string(), "RK2".to_string(), 1)),
         );
 
-        before.insert("PK1".to_string(), partition_rows);
+        let mut before = BTreeMap::new();
+
+        before.insert("PK1".to_string(), before_rows);
+
+        let after = BTreeMap::new();
+
+        super::trigger_table_difference(&test_callback, Some(before), &after).await;
+
+        let read_access = test_callback.data.lock().await;
+
+        assert_eq!(2, read_access.deleted.get("PK1").unwrap().len());
+    }
+
+    #[tokio::test]
+    pub async fn test_brand_new_table() {
+        let test_callback = TestCallbacks::new();
+
+        let mut after_rows = BTreeMap::new();
+
+        after_rows.insert(
+            "RK1".to_string(),
+            Arc::new(TestRow::new("PK1".to_string(), "RK1".to_string(), 1)),
+        );
+        after_rows.insert(
+            "RK2".to_string(),
+            Arc::new(TestRow::new("PK1".to_string(), "RK2".to_string(), 1)),
+        );
+
+        let mut after = BTreeMap::new();
+
+        after.insert("PK1".to_string(), after_rows);
+
+        super::trigger_table_difference(&test_callback, None, &after).await;
+
+        let read_access = test_callback.data.lock().await;
+        assert_eq!(2, read_access.added.get("PK1").unwrap().len());
+    }
+
+    #[tokio::test]
+    pub async fn test_we_have_updates_in_table() {
+        let test_callback = TestCallbacks::new();
+
+        let mut before_partition = BTreeMap::new();
+
+        before_partition.insert(
+            "RK1".to_string(),
+            Arc::new(TestRow::new("PK1".to_string(), "RK1".to_string(), 1)),
+        );
+        before_partition.insert(
+            "RK2".to_string(),
+            Arc::new(TestRow::new("PK1".to_string(), "RK2".to_string(), 1)),
+        );
+
+        let mut before = BTreeMap::new();
+        before.insert("PK1".to_string(), before_partition);
+
+        let mut after_partition = BTreeMap::new();
+        after_partition.insert(
+            "RK2".to_string(),
+            Arc::new(TestRow::new("PK1".to_string(), "RK2".to_string(), 2)),
+        );
+
+        let mut after = BTreeMap::new();
+        after.insert("PK1".to_string(), after_partition);
+
+        super::trigger_table_difference(&test_callback, Some(before), &after).await;
+
+        let read_access = test_callback.data.lock().await;
+        assert_eq!(1, read_access.updated.get("PK1").unwrap().len());
+        assert_eq!(1, read_access.deleted.get("PK1").unwrap().len());
     }
 }
