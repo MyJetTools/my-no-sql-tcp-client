@@ -42,6 +42,16 @@ where
         events_loop.start(app_states, logger).await;
         Self { events_loop }
     }
+
+    pub fn updated(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>) {
+        self.events_loop
+            .send(PusherEvents::Updated(partition_key.to_string(), entities));
+    }
+
+    pub fn deleted(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>) {
+        self.events_loop
+            .send(PusherEvents::Deleted(partition_key.to_string(), entities));
+    }
 }
 
 #[async_trait::async_trait]

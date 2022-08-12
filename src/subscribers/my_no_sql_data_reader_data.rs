@@ -4,7 +4,7 @@ use std::{
 };
 
 use my_no_sql_server_abstractions::MyNoSqlEntity;
-use rust_extensions::{ApplicationStates, Logger};
+use rust_extensions::{lazy::LazyVec, ApplicationStates, Logger};
 
 use super::{MyNoSqlDataRaderCallBacks, MyNoSqlDataRaderCallBacksPusher};
 
@@ -109,9 +109,17 @@ where
     }
 
     pub fn update_rows(&mut self, src_data: HashMap<String, Vec<TMyNoSqlEntity>>) {
+        let callbacks = self.callbacks.clone();
+
         let entities = self.get_init_table();
 
         for (partition_key, src_entities) in src_data {
+            let mut updates = if callbacks.is_some() {
+                Some(LazyVec::new())
+            } else {
+                None
+            };
+
             if !entities.contains_key(partition_key.as_str()) {
                 entities.insert(partition_key.to_string(), BTreeMap::new());
             }
@@ -120,26 +128,68 @@ where
 
             for entity in src_entities {
                 let entity = Arc::new(entity);
+                if let Some(updates) = updates.as_mut() {
+                    updates.add(entity.clone());
+                }
                 by_partition.insert(entity.get_row_key().to_string(), entity);
+            }
+
+            if let Some(callbacks) = callbacks.as_ref() {
+                if let Some(updates) = updates {
+                    if let Some(updates) = updates.get_result() {
+                        callbacks.updated(partition_key.as_str(), updates);
+                    }
+                }
             }
         }
     }
 
     pub fn delete_rows(&mut self, rows_to_delete: Vec<my_no_sql_tcp_shared::DeleteRowTcpContract>) {
+        let callbacks = self.callbacks.clone();
+
+        let mut deleted_rows = if callbacks.is_some() {
+            Some(HashMap::new())
+        } else {
+            None
+        };
+
         let entities = self.get_init_table();
 
-        for row in &rows_to_delete {
+        for row_to_delete in &rows_to_delete {
             let mut delete_partition = false;
-            if let Some(partition) = entities.get_mut(row.partition_key.as_str()) {
-                if partition.contains_key(row.row_key.as_str()) {
-                    partition.remove(row.row_key.as_str());
+            if let Some(partition) = entities.get_mut(row_to_delete.partition_key.as_str()) {
+                if partition.remove(row_to_delete.row_key.as_str()).is_some() {
+                    if let Some(deleted_rows) = deleted_rows.as_mut() {
+                        if !deleted_rows.contains_key(row_to_delete.partition_key.as_str()) {
+                            deleted_rows
+                                .insert(row_to_delete.partition_key.to_string(), Vec::new());
+                        }
+
+                        deleted_rows
+                            .get_mut(row_to_delete.partition_key.as_str())
+                            .unwrap()
+                            .push(
+                                partition
+                                    .get(row_to_delete.row_key.as_str())
+                                    .unwrap()
+                                    .clone(),
+                            );
+                    }
                 }
 
                 delete_partition = partition.len() == 0;
             }
 
             if delete_partition {
-                entities.remove(row.partition_key.as_str());
+                entities.remove(row_to_delete.partition_key.as_str());
+            }
+        }
+
+        if let Some(callbacks) = callbacks.as_ref() {
+            if let Some(partitions) = deleted_rows {
+                for (partition_key, rows) in partitions {
+                    callbacks.deleted(partition_key.as_str(), rows);
+                }
             }
         }
     }
