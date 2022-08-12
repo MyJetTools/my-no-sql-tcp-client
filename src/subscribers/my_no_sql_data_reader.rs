@@ -5,26 +5,34 @@ use std::{
 
 use async_trait::async_trait;
 use my_no_sql_server_abstractions::MyNoSqlEntity;
+use rust_extensions::{ApplicationStates, Logger};
 use serde::de::DeserializeOwned;
 use tokio::sync::RwLock;
 
 use super::{MyNoSqlDataRaderCallBacks, MyNoSqlDataReaderData, UpdateEvent};
 
-pub struct MyNoSqlDataReader<
-    TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static,
-    TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Sync + Send + 'static,
-> {
-    data: RwLock<MyNoSqlDataReaderData<TMyNoSqlEntity, TMyNoSqlDataRaderCallBacks>>,
+pub struct MyNoSqlDataReader<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
+    data: RwLock<MyNoSqlDataReaderData<TMyNoSqlEntity>>,
 }
 
-impl<
-        TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned,
-        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Sync + Send + 'static,
-    > MyNoSqlDataReader<TMyNoSqlEntity, TMyNoSqlDataRaderCallBacks>
+impl<TMyNoSqlEntity> MyNoSqlDataReader<TMyNoSqlEntity>
+where
+    TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
 {
-    pub fn new(table_name: String, callbacks: Option<TMyNoSqlDataRaderCallBacks>) -> Self {
+    pub async fn new<TMyNoSqlDataRaderCallBacks>(
+        table_name: String,
+        callbacks: Option<Arc<TMyNoSqlDataRaderCallBacks>>,
+        app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
+        logs: Arc<dyn Logger + Send + Sync + 'static>,
+    ) -> Self
+    where
+        TMyNoSqlDataRaderCallBacks:
+            MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
+    {
         Self {
-            data: RwLock::new(MyNoSqlDataReaderData::new(table_name, callbacks)),
+            data: RwLock::new(
+                MyNoSqlDataReaderData::new(table_name, callbacks, app_states, logs).await,
+            ),
         }
     }
 
@@ -76,10 +84,8 @@ impl<
 }
 
 #[async_trait]
-impl<
-        TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned,
-        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Sync + Send + 'static,
-    > UpdateEvent for MyNoSqlDataReader<TMyNoSqlEntity, TMyNoSqlDataRaderCallBacks>
+impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned> UpdateEvent
+    for MyNoSqlDataReader<TMyNoSqlEntity>
 {
     async fn init_table(&self, data: Vec<u8>) {
         let data = self.deserialize_array(data.as_slice());

@@ -4,29 +4,35 @@ use std::{
 };
 
 use my_no_sql_server_abstractions::MyNoSqlEntity;
+use rust_extensions::{ApplicationStates, Logger};
 
-use super::MyNoSqlDataRaderCallBacks;
+use super::{MyNoSqlDataRaderCallBacks, MyNoSqlDataRaderCallBacksPusher};
 
-pub struct MyNoSqlDataReaderData<
-    TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
-    TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity>,
-> {
+pub struct MyNoSqlDataReaderData<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> {
     table_name: String,
     entities: Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>>,
-    callbacks: Option<Arc<TMyNoSqlDataRaderCallBacks>>,
+    callbacks: Option<Arc<MyNoSqlDataRaderCallBacksPusher<TMyNoSqlEntity>>>,
 }
 
-impl<
-        TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
-        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity>,
-    > MyNoSqlDataReaderData<TMyNoSqlEntity, TMyNoSqlDataRaderCallBacks>
+impl<TMyNoSqlEntity> MyNoSqlDataReaderData<TMyNoSqlEntity>
+where
+    TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
 {
-    pub fn new(table_name: String, callbacks: Option<TMyNoSqlDataRaderCallBacks>) -> Self {
+    pub async fn new<
+        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
+    >(
+        table_name: String,
+        callbacks: Option<Arc<TMyNoSqlDataRaderCallBacks>>,
+        app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
+        logger: Arc<dyn Logger + Send + Sync + 'static>,
+    ) -> Self {
         Self {
             table_name,
             entities: None,
             callbacks: if let Some(callbacks) = callbacks {
-                Some(Arc::new(callbacks))
+                let pusher =
+                    MyNoSqlDataRaderCallBacksPusher::new(callbacks, app_states, logger).await;
+                Some(Arc::new(pusher))
             } else {
                 None
             },

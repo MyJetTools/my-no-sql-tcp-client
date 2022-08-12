@@ -13,15 +13,15 @@ pub trait MyNoSqlDataRaderCallBacks<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync 
 impl<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static>
     MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> for ()
 {
-    async fn added(&self, _partition_key: &str, _entity: Vec<Arc<TMyNoSqlEntity>>) {
+    async fn added(&self, _partition_key: &str, _entities: Vec<Arc<TMyNoSqlEntity>>) {
         panic!("This is a dumb implementation")
     }
 
-    async fn updated(&self, _partition_key: &str, _entity: Vec<Arc<TMyNoSqlEntity>>) {
+    async fn updated(&self, _partition_key: &str, _entities: Vec<Arc<TMyNoSqlEntity>>) {
         panic!("This is a dumb implementation")
     }
 
-    async fn deleted(&self, _partition_key: &str, _entity: Vec<Arc<TMyNoSqlEntity>>) {
+    async fn deleted(&self, _partition_key: &str, _entities: Vec<Arc<TMyNoSqlEntity>>) {
         panic!("This is a dumb implementation")
     }
 }
