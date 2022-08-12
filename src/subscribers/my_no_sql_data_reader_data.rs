@@ -232,4 +232,22 @@ where
 
         Some(partition.clone())
     }
+
+    pub fn get_by_partition_as_vec(&self, partition_key: &str) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
+        let entities = self.entities.as_ref()?;
+
+        let partition = entities.get(partition_key)?;
+
+        if partition.len() == 0 {
+            return None;
+        }
+
+        let mut result = Vec::with_capacity(partition.len());
+
+        for db_row in partition.values() {
+            result.push(db_row.clone());
+        }
+
+        Some(result)
+    }
 }
