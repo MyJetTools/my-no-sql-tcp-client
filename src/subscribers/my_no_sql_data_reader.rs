@@ -8,18 +8,23 @@ use my_no_sql_server_abstractions::MyNoSqlEntity;
 use serde::de::DeserializeOwned;
 use tokio::sync::RwLock;
 
-use super::{MyNoSqlDataReaderData, UpdateEvent};
+use super::{MyNoSqlDataRaderCallBacks, MyNoSqlDataReaderData, UpdateEvent};
 
-pub struct MyNoSqlDataReader<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send> {
-    data: RwLock<MyNoSqlDataReaderData<TMyNoSqlEntity>>,
+pub struct MyNoSqlDataReader<
+    TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static,
+    TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Sync + Send + 'static,
+> {
+    data: RwLock<MyNoSqlDataReaderData<TMyNoSqlEntity, TMyNoSqlDataRaderCallBacks>>,
 }
 
-impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned>
-    MyNoSqlDataReader<TMyNoSqlEntity>
+impl<
+        TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned,
+        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Sync + Send + 'static,
+    > MyNoSqlDataReader<TMyNoSqlEntity, TMyNoSqlDataRaderCallBacks>
 {
-    pub fn new(table_name: String) -> Self {
+    pub fn new(table_name: String, callbacks: Option<TMyNoSqlDataRaderCallBacks>) -> Self {
         Self {
-            data: RwLock::new(MyNoSqlDataReaderData::new(table_name)),
+            data: RwLock::new(MyNoSqlDataReaderData::new(table_name, callbacks)),
         }
     }
 
@@ -71,21 +76,23 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned>
 }
 
 #[async_trait]
-impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned> UpdateEvent
-    for MyNoSqlDataReader<TMyNoSqlEntity>
+impl<
+        TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned,
+        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Sync + Send + 'static,
+    > UpdateEvent for MyNoSqlDataReader<TMyNoSqlEntity, TMyNoSqlDataRaderCallBacks>
 {
     async fn init_table(&self, data: Vec<u8>) {
         let data = self.deserialize_array(data.as_slice());
 
         let mut write_access = self.data.write().await;
-        write_access.init_table(data);
+        write_access.init_table(data).await;
     }
 
     async fn init_partition(&self, partition_key: &str, data: Vec<u8>) {
         let data = self.deserialize_array(data.as_slice());
 
         let mut write_access = self.data.write().await;
-        write_access.init_partition(partition_key, data);
+        write_access.init_partition(partition_key, data).await;
     }
 
     async fn update_rows(&self, data: Vec<u8>) {

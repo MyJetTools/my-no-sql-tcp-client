@@ -4,7 +4,7 @@ use my_no_sql_server_abstractions::MyNoSqlEntity;
 use serde::de::DeserializeOwned;
 use tokio::sync::RwLock;
 
-use super::{MyNoSqlDataReader, UpdateEvent};
+use super::{MyNoSqlDataRaderCallBacks, MyNoSqlDataReader, UpdateEvent};
 
 pub struct Subscribers {
     subscribers: RwLock<HashMap<String, Arc<dyn UpdateEvent + Send + Sync + 'static>>>,
@@ -19,19 +19,22 @@ impl Subscribers {
 
     pub async fn create_subscriber<
         TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
+        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Sync + Send + 'static,
     >(
         &self,
         table_name: String,
-    ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>> {
+        callbacks: Option<TMyNoSqlDataRaderCallBacks>,
+    ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity, TMyNoSqlDataRaderCallBacks>> {
         let mut write_access = self.subscribers.write().await;
 
         if write_access.contains_key(table_name.as_str()) {
             panic!("You already subscribed for the table {}", table_name);
         }
 
-        let new_reader = Arc::new(MyNoSqlDataReader::<TMyNoSqlEntity>::new(
-            table_name.to_string(),
-        ));
+        let new_reader = Arc::new(MyNoSqlDataReader::<
+            TMyNoSqlEntity,
+            TMyNoSqlDataRaderCallBacks,
+        >::new(table_name.to_string(), callbacks));
 
         write_access.insert(table_name, new_reader.clone());
 

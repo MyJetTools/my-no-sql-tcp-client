@@ -6,7 +6,10 @@ use my_tcp_sockets::TcpClient;
 use rust_extensions::Logger;
 use serde::de::DeserializeOwned;
 
-use crate::{subscribers::MyNoSqlDataReader, tcp_events::TcpEvents};
+use crate::{
+    subscribers::{MyNoSqlDataRaderCallBacks, MyNoSqlDataReader},
+    tcp_events::TcpEvents,
+};
 
 pub struct MyNoSqlTcpConnection {
     tcp_client: TcpClient,
@@ -30,10 +33,24 @@ impl MyNoSqlTcpConnection {
     >(
         &self,
         table_name: String,
-    ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>> {
+    ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity, ()>> {
         self.tcp_events
             .subscribers
-            .create_subscriber(table_name)
+            .create_subscriber(table_name, None)
+            .await
+    }
+
+    pub async fn get_reader_with_callbaclks<
+        TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
+        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Sync + Send + 'static,
+    >(
+        &self,
+        table_name: String,
+        callback: TMyNoSqlDataRaderCallBacks,
+    ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity, TMyNoSqlDataRaderCallBacks>> {
+        self.tcp_events
+            .subscribers
+            .create_subscriber(table_name, Some(callback))
             .await
     }
 

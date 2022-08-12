@@ -5,16 +5,31 @@ use std::{
 
 use my_no_sql_server_abstractions::MyNoSqlEntity;
 
-pub struct MyNoSqlDataReaderData<TMyNoSqlEntity: MyNoSqlEntity> {
+use super::MyNoSqlDataRaderCallBacks;
+
+pub struct MyNoSqlDataReaderData<
+    TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
+    TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity>,
+> {
     table_name: String,
     entities: Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>>,
+    callbacks: Option<Arc<TMyNoSqlDataRaderCallBacks>>,
 }
 
-impl<TMyNoSqlEntity: MyNoSqlEntity> MyNoSqlDataReaderData<TMyNoSqlEntity> {
-    pub fn new(table_name: String) -> Self {
+impl<
+        TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
+        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity>,
+    > MyNoSqlDataReaderData<TMyNoSqlEntity, TMyNoSqlDataRaderCallBacks>
+{
+    pub fn new(table_name: String, callbacks: Option<TMyNoSqlDataRaderCallBacks>) -> Self {
         Self {
             table_name,
             entities: None,
+            callbacks: if let Some(callbacks) = callbacks {
+                Some(Arc::new(callbacks))
+            } else {
+                None
+            },
         }
     }
 
@@ -28,42 +43,62 @@ impl<TMyNoSqlEntity: MyNoSqlEntity> MyNoSqlDataReaderData<TMyNoSqlEntity> {
         return self.entities.as_mut().unwrap();
     }
 
-    pub fn init_table(&mut self, data: HashMap<String, Vec<TMyNoSqlEntity>>) {
-        let entities = self.get_init_table();
+    pub async fn init_table(&mut self, data: HashMap<String, Vec<TMyNoSqlEntity>>) {
+        let mut new_table: BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>> =
+            BTreeMap::new();
 
-        entities.clear();
         for (partition_key, src_entities_by_partition) in data {
-            entities.insert(partition_key.to_string(), BTreeMap::new());
+            new_table.insert(partition_key.to_string(), BTreeMap::new());
 
-            let by_partition = entities.get_mut(partition_key.as_str()).unwrap();
+            let by_partition = new_table.get_mut(partition_key.as_str()).unwrap();
 
             for entity in src_entities_by_partition {
                 let entity = Arc::new(entity);
                 by_partition.insert(entity.get_row_key().to_string(), entity);
             }
         }
+
+        let before = self.entities.replace(new_table);
+
+        if let Some(callbacks) = self.callbacks.as_ref() {
+            super::callback_triggers::trigger_table_difference(
+                callbacks.as_ref(),
+                before,
+                self.entities.as_ref().unwrap(),
+            )
+            .await;
+        }
     }
 
-    pub fn init_partition(
+    pub async fn init_partition(
         &mut self,
         partition_key: &str,
         src_entities: HashMap<String, Vec<TMyNoSqlEntity>>,
     ) {
+        let callbacks = self.callbacks.clone();
+
         let entities = self.get_init_table();
 
-        if let Some(partition) = entities.get_mut(partition_key) {
-            partition.clear();
-        } else {
-            entities.insert(partition_key.to_string(), BTreeMap::new());
+        let mut new_partition = BTreeMap::new();
+
+        let before_partition = entities.remove(partition_key);
+
+        for (row_key, entities) in src_entities {
+            for entity in entities {
+                new_partition.insert(row_key.clone(), Arc::new(entity));
+            }
         }
 
-        let by_partition = entities.get_mut(partition_key).unwrap();
+        entities.insert(partition_key.to_string(), new_partition);
 
-        for (_, src_by_partition) in src_entities {
-            for entity in src_by_partition {
-                let entity = Arc::new(entity);
-                by_partition.insert(entity.get_row_key().to_string(), entity);
-            }
+        if let Some(callbacks) = callbacks {
+            super::callback_triggers::trigger_partition_difference(
+                callbacks.as_ref(),
+                partition_key,
+                before_partition,
+                entities.get(partition_key).unwrap(),
+            )
+            .await;
         }
     }
 
