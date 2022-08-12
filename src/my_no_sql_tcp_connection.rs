@@ -6,10 +6,7 @@ use my_tcp_sockets::TcpClient;
 use rust_extensions::{AppStates, Logger};
 use serde::de::DeserializeOwned;
 
-use crate::{
-    subscribers::{MyNoSqlDataRaderCallBacks, MyNoSqlDataReader},
-    tcp_events::TcpEvents,
-};
+use crate::{subscribers::MyNoSqlDataReader, tcp_events::TcpEvents};
 
 pub struct MyNoSqlTcpConnection {
     tcp_client: TcpClient,
