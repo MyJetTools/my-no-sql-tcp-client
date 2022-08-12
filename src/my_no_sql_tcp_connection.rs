@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use my_no_sql_server_abstractions::MyNoSqlEntity;
 use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
 use my_tcp_sockets::TcpClient;
-use rust_extensions::{ApplicationStates, Logger};
+use rust_extensions::{AppStates, Logger};
 use serde::de::DeserializeOwned;
 
 use crate::{
@@ -16,7 +16,7 @@ pub struct MyNoSqlTcpConnection {
     pub ping_timeout: Duration,
     pub connect_timeout: Duration,
     pub tcp_events: Arc<TcpEvents>,
-    pub app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
+    app_states: Arc<AppStates>,
     pub logger: Arc<dyn Logger + Send + Sync + 'static>,
 }
 
@@ -24,7 +24,6 @@ impl MyNoSqlTcpConnection {
     pub fn new(
         host_port: String,
         app_name: String,
-        app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
         logger: Arc<dyn Logger + Send + Sync + 'static>,
     ) -> Self {
         Self {
@@ -32,7 +31,7 @@ impl MyNoSqlTcpConnection {
             ping_timeout: Duration::from_secs(3),
             connect_timeout: Duration::from_secs(3),
             tcp_events: Arc::new(TcpEvents::new(app_name)),
-            app_states,
+            app_states: Arc::new(AppStates::create_un_initialized()),
             logger,
         }
     }
@@ -74,6 +73,8 @@ impl MyNoSqlTcpConnection {
     }
 
     pub async fn start(&self) {
+        self.app_states.set_initialized();
+
         self.tcp_client
             .start(
                 Arc::new(|| -> MyNoSqlReaderTcpSerializer { MyNoSqlReaderTcpSerializer::new() }),
