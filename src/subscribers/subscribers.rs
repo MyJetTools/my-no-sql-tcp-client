@@ -5,7 +5,7 @@ use rust_extensions::{ApplicationStates, Logger};
 use serde::de::DeserializeOwned;
 use tokio::sync::RwLock;
 
-use super::{MyNoSqlDataRaderCallBacks, MyNoSqlDataReader, UpdateEvent};
+use super::{MyNoSqlDataReader, UpdateEvent};
 
 pub struct Subscribers {
     subscribers: RwLock<HashMap<String, Arc<dyn UpdateEvent + Send + Sync + 'static>>>,
@@ -18,24 +18,22 @@ impl Subscribers {
         }
     }
 
-    pub async fn create_subscriber<
-        TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
-        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Sync + Send + 'static,
-    >(
+    pub async fn create_subscriber<TMyNoSqlEntity>(
         &self,
         table_name: String,
-        callbacks: Option<Arc<TMyNoSqlDataRaderCallBacks>>,
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
         logs: Arc<dyn Logger + Send + Sync + 'static>,
-    ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>> {
+    ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>>
+    where
+        TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
+    {
         let mut write_access = self.subscribers.write().await;
 
         if write_access.contains_key(table_name.as_str()) {
             panic!("You already subscribed for the table {}", table_name);
         }
 
-        let new_reader =
-            MyNoSqlDataReader::new(table_name.to_string(), callbacks, app_states, logs).await;
+        let new_reader = MyNoSqlDataReader::new(table_name.to_string(), app_states, logs).await;
 
         let new_reader = Arc::new(new_reader);
 

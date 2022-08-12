@@ -19,20 +19,13 @@ impl<TMyNoSqlEntity> MyNoSqlDataReader<TMyNoSqlEntity>
 where
     TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
 {
-    pub async fn new<TMyNoSqlDataRaderCallBacks>(
+    pub async fn new(
         table_name: String,
-        callbacks: Option<Arc<TMyNoSqlDataRaderCallBacks>>,
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
         logs: Arc<dyn Logger + Send + Sync + 'static>,
-    ) -> Self
-    where
-        TMyNoSqlDataRaderCallBacks:
-            MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
-    {
+    ) -> Self {
         Self {
-            data: RwLock::new(
-                MyNoSqlDataReaderData::new(table_name, callbacks, app_states, logs).await,
-            ),
+            data: RwLock::new(MyNoSqlDataReaderData::new(table_name, app_states, logs).await),
         }
     }
 
@@ -42,6 +35,16 @@ where
         let reader = self.data.read().await;
 
         return reader.get_table_snapshot();
+    }
+
+    pub async fn assign_callback<
+        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
+    >(
+        &self,
+        callbacks: Arc<TMyNoSqlDataRaderCallBacks>,
+    ) {
+        let mut write_access = self.data.write().await;
+        write_access.assign_callback(callbacks).await;
     }
 
     pub async fn get_by_partition_key(

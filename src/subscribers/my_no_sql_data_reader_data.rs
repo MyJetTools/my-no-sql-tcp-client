@@ -12,33 +12,43 @@ pub struct MyNoSqlDataReaderData<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + '
     table_name: String,
     entities: Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>>,
     callbacks: Option<Arc<MyNoSqlDataRaderCallBacksPusher<TMyNoSqlEntity>>>,
+    app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
+    logger: Arc<dyn Logger + Send + Sync + 'static>,
 }
 
 impl<TMyNoSqlEntity> MyNoSqlDataReaderData<TMyNoSqlEntity>
 where
     TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
 {
-    pub async fn new<
-        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
-    >(
+    pub async fn new(
         table_name: String,
-        callbacks: Option<Arc<TMyNoSqlDataRaderCallBacks>>,
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
         logger: Arc<dyn Logger + Send + Sync + 'static>,
     ) -> Self {
         Self {
             table_name,
             entities: None,
-            callbacks: if let Some(callbacks) = callbacks {
-                let pusher =
-                    MyNoSqlDataRaderCallBacksPusher::new(callbacks, app_states, logger).await;
-                Some(Arc::new(pusher))
-            } else {
-                None
-            },
+            callbacks: None,
+            app_states,
+            logger,
         }
     }
 
+    pub async fn assign_callback<
+        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
+    >(
+        &mut self,
+        callbacks: Arc<TMyNoSqlDataRaderCallBacks>,
+    ) {
+        let pusher = MyNoSqlDataRaderCallBacksPusher::new(
+            callbacks,
+            self.app_states.clone(),
+            self.logger.clone(),
+        )
+        .await;
+
+        self.callbacks = Some(Arc::new(pusher));
+    }
     fn get_init_table(&mut self) -> &mut BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>> {
         if self.entities.is_none() {
             println!("Initialized data for table {}", self.table_name);

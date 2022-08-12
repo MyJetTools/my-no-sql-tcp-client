@@ -44,31 +44,7 @@ impl MyNoSqlTcpConnection {
     ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>> {
         self.tcp_events
             .subscribers
-            .create_subscriber::<TMyNoSqlEntity, ()>(
-                table_name,
-                None,
-                self.app_states.clone(),
-                self.logger.clone(),
-            )
-            .await
-    }
-
-    pub async fn get_reader_with_callbaclks<
-        TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
-        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Sync + Send + 'static,
-    >(
-        &self,
-        table_name: String,
-        callback: TMyNoSqlDataRaderCallBacks,
-    ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>> {
-        self.tcp_events
-            .subscribers
-            .create_subscriber(
-                table_name,
-                Some(Arc::new(callback)),
-                self.app_states.clone(),
-                self.logger.clone(),
-            )
+            .create_subscriber(table_name, self.app_states.clone(), self.logger.clone())
             .await
     }
 
