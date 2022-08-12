@@ -9,8 +9,7 @@ use rust_extensions::{
 use super::MyNoSqlDataRaderCallBacks;
 
 pub enum PusherEvents<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> {
-    Added(String, Vec<Arc<TMyNoSqlEntity>>),
-    Updated(String, Vec<Arc<TMyNoSqlEntity>>),
+    InsertedOrReplaced(String, Vec<Arc<TMyNoSqlEntity>>),
     Deleted(String, Vec<Arc<TMyNoSqlEntity>>),
 }
 
@@ -43,9 +42,11 @@ where
         Self { events_loop }
     }
 
-    pub fn updated(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>) {
-        self.events_loop
-            .send(PusherEvents::Updated(partition_key.to_string(), entities));
+    pub fn inserted_or_replaced(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>) {
+        self.events_loop.send(PusherEvents::InsertedOrReplaced(
+            partition_key.to_string(),
+            entities,
+        ));
     }
 
     pub fn deleted(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>) {
@@ -60,14 +61,11 @@ impl<TMyNoSqlEntity> MyNoSqlDataRaderCallBacks<TMyNoSqlEntity>
 where
     TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
 {
-    async fn added(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>) {
-        self.events_loop
-            .send(PusherEvents::Added(partition_key.to_string(), entities));
-    }
-
-    async fn updated(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>) {
-        self.events_loop
-            .send(PusherEvents::Updated(partition_key.to_string(), entities));
+    async fn inserted_or_replaced(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>) {
+        self.events_loop.send(PusherEvents::InsertedOrReplaced(
+            partition_key.to_string(),
+            entities,
+        ));
     }
 
     async fn deleted(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>) {
@@ -103,12 +101,9 @@ impl<
 {
     async fn tick(&self, model: PusherEvents<TMyNoSqlEntity>) {
         match model {
-            PusherEvents::Added(partition_key, entities) => {
-                self.callbacks.added(partition_key.as_str(), entities).await;
-            }
-            PusherEvents::Updated(partition_key, entities) => {
+            PusherEvents::InsertedOrReplaced(partition_key, entities) => {
                 self.callbacks
-                    .updated(partition_key.as_str(), entities)
+                    .inserted_or_replaced(partition_key.as_str(), entities)
                     .await;
             }
             PusherEvents::Deleted(partition_key, entities) => {

@@ -37,7 +37,9 @@ pub async fn trigger_brand_new_table<
         }
 
         if let Some(added_entities) = added.get_result() {
-            callbacks.added(partition_key, added_entities).await;
+            callbacks
+                .inserted_or_replaced(partition_key, added_entities)
+                .await;
         }
     }
 }
@@ -89,23 +91,21 @@ pub async fn trigger_partition_difference<
     match before_partition {
         Some(mut before_partition) => {
             for (now_row_key, now_row) in now_partition {
-                let mut updated = LazyVec::new();
-                let mut added = LazyVec::new();
+                let mut inserted_or_replaced = LazyVec::new();
 
                 match before_partition.remove(now_row_key) {
                     Some(_) => {
-                        updated.add(now_row.clone());
+                        inserted_or_replaced.add(now_row.clone());
                     }
                     None => {
-                        added.add(now_row.clone());
+                        inserted_or_replaced.add(now_row.clone());
                     }
                 }
 
-                if let Some(updated) = updated.get_result() {
-                    callbacks.updated(partition_key, updated).await;
-                }
-                if let Some(added) = added.get_result() {
-                    callbacks.added(partition_key, added).await;
+                if let Some(inserted_or_replaced) = inserted_or_replaced.get_result() {
+                    callbacks
+                        .inserted_or_replaced(partition_key, inserted_or_replaced)
+                        .await;
                 }
             }
 
@@ -133,13 +133,15 @@ pub async fn trigger_brand_new_partition<
     partition_key: &str,
     partition: &BTreeMap<String, Arc<TMyNoSqlEntity>>,
 ) {
-    let mut added = LazyVec::new();
+    let mut inserted_or_replaced = LazyVec::new();
     for entity in partition.values() {
-        added.add(entity.clone());
+        inserted_or_replaced.add(entity.clone());
     }
 
-    if let Some(added_entities) = added.get_result() {
-        callbacks.added(partition_key, added_entities).await;
+    if let Some(inserted_or_replaced_entities) = inserted_or_replaced.get_result() {
+        callbacks
+            .inserted_or_replaced(partition_key, inserted_or_replaced_entities)
+            .await;
     }
 }
 
@@ -156,8 +158,7 @@ mod tests {
     use crate::subscribers::MyNoSqlDataRaderCallBacks;
 
     struct TestCallbacksInner {
-        added: HashMap<String, Vec<Arc<TestRow>>>,
-        updated: HashMap<String, Vec<Arc<TestRow>>>,
+        inserted_or_replaced_entities: HashMap<String, Vec<Arc<TestRow>>>,
         deleted: HashMap<String, Vec<Arc<TestRow>>>,
     }
 
@@ -169,8 +170,7 @@ mod tests {
         pub fn new() -> Self {
             Self {
                 data: Mutex::new(TestCallbacksInner {
-                    added: HashMap::new(),
-                    updated: HashMap::new(),
+                    inserted_or_replaced_entities: HashMap::new(),
                     deleted: HashMap::new(),
                 }),
             }
@@ -179,31 +179,19 @@ mod tests {
 
     #[async_trait::async_trait]
     impl MyNoSqlDataRaderCallBacks<TestRow> for TestCallbacks {
-        async fn added(&self, partition_key: &str, entities: Vec<Arc<TestRow>>) {
+        async fn inserted_or_replaced(&self, partition_key: &str, entities: Vec<Arc<TestRow>>) {
             let mut write_access = self.data.lock().await;
-            match write_access.added.get_mut(partition_key) {
+            match write_access
+                .inserted_or_replaced_entities
+                .get_mut(partition_key)
+            {
                 Some(db_partition) => {
                     db_partition.extend(entities);
                 }
 
                 None => {
                     write_access
-                        .added
-                        .insert(partition_key.to_string(), entities);
-                }
-            }
-        }
-
-        async fn updated(&self, partition_key: &str, entities: Vec<Arc<TestRow>>) {
-            let mut write_access = self.data.lock().await;
-            match write_access.updated.get_mut(partition_key) {
-                Some(db_partition) => {
-                    db_partition.extend(entities);
-                }
-
-                None => {
-                    write_access
-                        .updated
+                        .inserted_or_replaced_entities
                         .insert(partition_key.to_string(), entities);
                 }
             }
@@ -302,7 +290,14 @@ mod tests {
         super::trigger_table_difference(&test_callback, None, &after).await;
 
         let read_access = test_callback.data.lock().await;
-        assert_eq!(2, read_access.added.get("PK1").unwrap().len());
+        assert_eq!(
+            2,
+            read_access
+                .inserted_or_replaced_entities
+                .get("PK1")
+                .unwrap()
+                .len()
+        );
     }
 
     #[tokio::test]
@@ -335,7 +330,14 @@ mod tests {
         super::trigger_table_difference(&test_callback, Some(before), &after).await;
 
         let read_access = test_callback.data.lock().await;
-        assert_eq!(1, read_access.updated.get("PK1").unwrap().len());
+        assert_eq!(
+            1,
+            read_access
+                .inserted_or_replaced_entities
+                .get("PK1")
+                .unwrap()
+                .len()
+        );
         assert_eq!(1, read_access.deleted.get("PK1").unwrap().len());
     }
 }

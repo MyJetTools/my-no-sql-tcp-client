@@ -147,7 +147,7 @@ where
             if let Some(callbacks) = callbacks.as_ref() {
                 if let Some(updates) = updates {
                     if let Some(updates) = updates.get_result() {
-                        callbacks.updated(partition_key.as_str(), updates);
+                        callbacks.inserted_or_replaced(partition_key.as_str(), updates);
                     }
                 }
             }
