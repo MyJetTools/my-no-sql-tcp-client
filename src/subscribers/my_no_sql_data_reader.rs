@@ -5,7 +5,7 @@ use std::{
 
 use async_trait::async_trait;
 use my_no_sql_server_abstractions::MyNoSqlEntity;
-use rust_extensions::{ApplicationStates, Logger};
+use rust_extensions::ApplicationStates;
 use serde::de::DeserializeOwned;
 use tokio::sync::RwLock;
 
@@ -22,10 +22,9 @@ where
     pub async fn new(
         table_name: String,
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
-        logs: Arc<dyn Logger + Send + Sync + 'static>,
     ) -> Self {
         Self {
-            data: RwLock::new(MyNoSqlDataReaderData::new(table_name, app_states, logs).await),
+            data: RwLock::new(MyNoSqlDataReaderData::new(table_name, app_states).await),
         }
     }
 

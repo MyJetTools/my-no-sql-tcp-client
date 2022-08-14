@@ -4,7 +4,7 @@ use std::{
 };
 
 use my_no_sql_server_abstractions::MyNoSqlEntity;
-use rust_extensions::{lazy::LazyVec, ApplicationStates, Logger};
+use rust_extensions::{lazy::LazyVec, ApplicationStates};
 
 use super::{MyNoSqlDataRaderCallBacks, MyNoSqlDataRaderCallBacksPusher};
 
@@ -13,7 +13,6 @@ pub struct MyNoSqlDataReaderData<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + '
     entities: Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>>,
     callbacks: Option<Arc<MyNoSqlDataRaderCallBacksPusher<TMyNoSqlEntity>>>,
     app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
-    logger: Arc<dyn Logger + Send + Sync + 'static>,
 }
 
 impl<TMyNoSqlEntity> MyNoSqlDataReaderData<TMyNoSqlEntity>
@@ -23,14 +22,12 @@ where
     pub async fn new(
         table_name: String,
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
-        logger: Arc<dyn Logger + Send + Sync + 'static>,
     ) -> Self {
         Self {
             table_name,
             entities: None,
             callbacks: None,
             app_states,
-            logger,
         }
     }
 
@@ -40,12 +37,7 @@ where
         &mut self,
         callbacks: Arc<TMyNoSqlDataRaderCallBacks>,
     ) {
-        let pusher = MyNoSqlDataRaderCallBacksPusher::new(
-            callbacks,
-            self.app_states.clone(),
-            self.logger.clone(),
-        )
-        .await;
+        let pusher = MyNoSqlDataRaderCallBacksPusher::new(callbacks, self.app_states.clone()).await;
 
         self.callbacks = Some(Arc::new(pusher));
     }

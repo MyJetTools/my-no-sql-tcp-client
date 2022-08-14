@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use my_no_sql_server_abstractions::MyNoSqlEntity;
-use rust_extensions::{ApplicationStates, Logger};
+use rust_extensions::ApplicationStates;
 use serde::de::DeserializeOwned;
 use tokio::sync::RwLock;
 
@@ -22,7 +22,6 @@ impl Subscribers {
         &self,
         table_name: String,
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
-        logs: Arc<dyn Logger + Send + Sync + 'static>,
     ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>>
     where
         TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
@@ -33,7 +32,7 @@ impl Subscribers {
             panic!("You already subscribed for the table {}", table_name);
         }
 
-        let new_reader = MyNoSqlDataReader::new(table_name.to_string(), app_states, logs).await;
+        let new_reader = MyNoSqlDataReader::new(table_name.to_string(), app_states).await;
 
         let new_reader = Arc::new(new_reader);
 

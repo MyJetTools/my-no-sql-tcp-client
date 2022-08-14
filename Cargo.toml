@@ -10,6 +10,7 @@ my-no-sql-tcp-shared = { branch = "0.1.5", git = "https://github.com/MyJetTools/
 rust-extensions = { branch = "0.1.1", git = "https://github.com/MyJetTools/rust-extensions.git" }
 my-tcp-sockets = { branch = "0.1.6", git = "https://github.com/MyJetTools/my-tcp-sockets.git" }
 my-no-sql-server-abstractions = { branch = "main", git = "https://github.com/MyJetTools/my-no-sql-server-abstractions.git" }
+my-logger = { branch = "0.2.0", git = "https://github.com/MyJetTools/my-logger.git" }
 
 tokio = { version = "*", features = ["full"] }
 tokio-util = "*"

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use my_no_sql_server_abstractions::MyNoSqlEntity;
 use rust_extensions::{
     events_loop::{EventsLoop, EventsLoopTick},
-    ApplicationStates, Logger,
+    ApplicationStates,
 };
 
 use super::MyNoSqlDataRaderCallBacks;
@@ -29,7 +29,6 @@ where
     >(
         callbacks: Arc<TMyNoSqlDataRaderCallBacks>,
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
-        logger: Arc<dyn Logger + Send + Sync + 'static>,
     ) -> Self {
         let events_loop_reader = MyNoSqlDataRaderCallBacksSender::new(callbacks, None);
         let events_loop = EventsLoop::new("MyNoSqlDataRaderCallBacksPusher".to_string());
@@ -38,7 +37,9 @@ where
             .register_event_loop(Arc::new(events_loop_reader))
             .await;
 
-        events_loop.start(app_states, logger).await;
+        events_loop
+            .start(app_states, my_logger::LOGGER.clone())
+            .await;
         Self { events_loop }
     }
 
