@@ -225,6 +225,18 @@ where
         Some(partition.clone())
     }
 
+    pub fn has_partition(&self, partition_key: &str) -> bool {
+        let entities = self.entities.as_ref();
+
+        if entities.is_none() {
+            return false;
+        }
+
+        let entities = entities.unwrap();
+
+        entities.contains_key(partition_key)
+    }
+
     pub fn get_by_partition_as_vec(&self, partition_key: &str) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
         let entities = self.entities.as_ref()?;
 

@@ -71,6 +71,11 @@ where
         reader.get_entity(partition_key, row_key)
     }
 
+    pub async fn has_partition(&self, partition_key: &str) -> bool {
+        let reader = self.data.read().await;
+        reader.has_partition(partition_key)
+    }
+
     pub fn deserialize<'s>(&self, data: &[u8]) -> TMyNoSqlEntity {
         let result = serde_json::from_slice(data).unwrap();
         result
