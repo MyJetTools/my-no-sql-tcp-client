@@ -6,7 +6,18 @@ use my_tcp_sockets::TcpClient;
 use rust_extensions::AppStates;
 use serde::de::DeserializeOwned;
 
-use crate::{subscribers::MyNoSqlDataReader, tcp_events::TcpEvents};
+use crate::{subscribers::MyNoSqlDataReader, tcp_events::TcpEvents, MyNoSqlTcpConnectionSettings};
+
+pub struct TcpConnectionSettings {
+    settings: Arc<dyn MyNoSqlTcpConnectionSettings + Sync + Send + 'static>,
+}
+
+#[async_trait::async_trait]
+impl my_tcp_sockets::TcpClientSocketSettings for TcpConnectionSettings {
+    async fn get_host_port(&self) -> String {
+        self.settings.get_host_port().await
+    }
+}
 
 pub struct MyNoSqlTcpConnection {
     tcp_client: TcpClient,
@@ -17,9 +28,14 @@ pub struct MyNoSqlTcpConnection {
 }
 
 impl MyNoSqlTcpConnection {
-    pub fn new(host_port: String, app_name: String) -> Self {
+    pub fn new(
+        app_name: String,
+        settings: Arc<dyn MyNoSqlTcpConnectionSettings + Sync + Send + 'static>,
+    ) -> Self {
+        let settings = TcpConnectionSettings { settings };
+
         Self {
-            tcp_client: TcpClient::new("MyNoSqlClient".to_string(), host_port),
+            tcp_client: TcpClient::new("MyNoSqlClient".to_string(), Arc::new(settings)),
             ping_timeout: Duration::from_secs(3),
             connect_timeout: Duration::from_secs(3),
             tcp_events: Arc::new(TcpEvents::new(app_name)),
