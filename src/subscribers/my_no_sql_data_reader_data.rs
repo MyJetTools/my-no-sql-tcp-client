@@ -9,7 +9,7 @@ use rust_extensions::{lazy::LazyVec, ApplicationStates};
 use super::{MyNoSqlDataRaderCallBacks, MyNoSqlDataRaderCallBacksPusher};
 
 pub struct MyNoSqlDataReaderData<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> {
-    table_name: String,
+    table_name: &'static str,
     entities: Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>>,
     callbacks: Option<Arc<MyNoSqlDataRaderCallBacksPusher<TMyNoSqlEntity>>>,
     app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
@@ -20,7 +20,7 @@ where
     TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
 {
     pub async fn new(
-        table_name: String,
+        table_name: &'static str,
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
     ) -> Self {
         Self {

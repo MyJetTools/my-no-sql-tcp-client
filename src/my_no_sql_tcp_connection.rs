@@ -47,11 +47,10 @@ impl MyNoSqlTcpConnection {
         TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
     >(
         &self,
-        table_name: String,
     ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>> {
         self.tcp_events
             .subscribers
-            .create_subscriber(table_name, self.app_states.clone())
+            .create_subscriber(self.app_states.clone())
             .await
     }
 

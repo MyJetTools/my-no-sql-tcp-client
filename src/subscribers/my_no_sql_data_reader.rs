@@ -19,12 +19,11 @@ impl<TMyNoSqlEntity> MyNoSqlDataReader<TMyNoSqlEntity>
 where
     TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
 {
-    pub async fn new(
-        table_name: String,
-        app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
-    ) -> Self {
+    pub async fn new(app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>) -> Self {
         Self {
-            data: RwLock::new(MyNoSqlDataReaderData::new(table_name, app_states).await),
+            data: RwLock::new(
+                MyNoSqlDataReaderData::new(TMyNoSqlEntity::TABLE_NAME, app_states).await,
+            ),
         }
     }
 

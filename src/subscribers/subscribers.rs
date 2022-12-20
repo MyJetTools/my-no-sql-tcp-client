@@ -20,7 +20,6 @@ impl Subscribers {
 
     pub async fn create_subscriber<TMyNoSqlEntity>(
         &self,
-        table_name: String,
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
     ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>>
     where
@@ -28,15 +27,18 @@ impl Subscribers {
     {
         let mut write_access = self.subscribers.write().await;
 
-        if write_access.contains_key(table_name.as_str()) {
-            panic!("You already subscribed for the table {}", table_name);
+        if write_access.contains_key(TMyNoSqlEntity::TABLE_NAME) {
+            panic!(
+                "You already subscribed for the table {}",
+                TMyNoSqlEntity::TABLE_NAME
+            );
         }
 
-        let new_reader = MyNoSqlDataReader::new(table_name.to_string(), app_states).await;
+        let new_reader = MyNoSqlDataReader::new(app_states).await;
 
         let new_reader = Arc::new(new_reader);
 
-        write_access.insert(table_name, new_reader.clone());
+        write_access.insert(TMyNoSqlEntity::TABLE_NAME.to_string(), new_reader.clone());
 
         new_reader
     }

@@ -229,6 +229,8 @@ mod tests {
     }
 
     impl MyNoSqlEntity for TestRow {
+        const TABLE_NAME: &'static str = "Test";
+
         fn get_partition_key(&self) -> &str {
             self.partition_key.as_str()
         }
