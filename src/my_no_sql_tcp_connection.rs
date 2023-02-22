@@ -1,9 +1,9 @@
 use std::{sync::Arc, time::Duration};
 
 use my_no_sql_server_abstractions::MyNoSqlEntity;
-use my_no_sql_tcp_shared::MyNoSqlReaderTcpSerializer;
+use my_no_sql_tcp_shared::{sync_to_main::SyncToMainNodelHandler, MyNoSqlReaderTcpSerializer};
 use my_tcp_sockets::TcpClient;
-use rust_extensions::AppStates;
+use rust_extensions::{AppStates, Logger};
 use serde::de::DeserializeOwned;
 
 use crate::{subscribers::MyNoSqlDataReader, tcp_events::TcpEvents, MyNoSqlTcpConnectionSettings};
@@ -38,7 +38,10 @@ impl MyNoSqlTcpConnection {
             tcp_client: TcpClient::new("MyNoSqlClient".to_string(), Arc::new(settings)),
             ping_timeout: Duration::from_secs(3),
             connect_timeout: Duration::from_secs(3),
-            tcp_events: Arc::new(TcpEvents::new(app_name)),
+            tcp_events: Arc::new(TcpEvents::new(
+                app_name,
+                Arc::new(SyncToMainNodelHandler::new()),
+            )),
             app_states: Arc::new(AppStates::create_un_initialized()),
         }
     }
@@ -50,11 +53,14 @@ impl MyNoSqlTcpConnection {
     ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>> {
         self.tcp_events
             .subscribers
-            .create_subscriber(self.app_states.clone())
+            .create_subscriber(
+                self.app_states.clone(),
+                self.tcp_events.sync_handler.clone(),
+            )
             .await
     }
 
-    pub async fn start(&self) {
+    pub async fn start(&self, logger: Arc<impl Logger + Send + Sync + 'static>) {
         self.app_states.set_initialized();
 
         self.tcp_client
@@ -63,6 +69,11 @@ impl MyNoSqlTcpConnection {
                 self.tcp_events.clone(),
                 my_logger::LOGGER.clone(),
             )
-            .await
+            .await;
+
+        self.tcp_events
+            .sync_handler
+            .start(self.app_states.clone(), logger)
+            .await;
     }
 }

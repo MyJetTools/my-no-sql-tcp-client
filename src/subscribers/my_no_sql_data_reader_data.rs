@@ -225,6 +225,26 @@ where
         Some(partition.clone())
     }
 
+    pub fn get_by_partition_with_filter(
+        &self,
+        partition_key: &str,
+        filter: impl Fn(&TMyNoSqlEntity) -> bool,
+    ) -> Option<BTreeMap<String, Arc<TMyNoSqlEntity>>> {
+        let entities = self.entities.as_ref()?;
+
+        let partition = entities.get(partition_key)?;
+
+        let mut result = BTreeMap::new();
+
+        for db_row in partition.values() {
+            if filter(db_row) {
+                result.insert(db_row.get_row_key().to_string(), db_row.clone());
+            }
+        }
+
+        Some(result)
+    }
+
     pub fn has_partition(&self, partition_key: &str) -> bool {
         let entities = self.entities.as_ref();
 
@@ -250,6 +270,30 @@ where
 
         for db_row in partition.values() {
             result.push(db_row.clone());
+        }
+
+        Some(result)
+    }
+
+    pub fn get_by_partition_as_vec_with_filter(
+        &self,
+        partition_key: &str,
+        filter: impl Fn(&TMyNoSqlEntity) -> bool,
+    ) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
+        let entities = self.entities.as_ref()?;
+
+        let partition = entities.get(partition_key)?;
+
+        if partition.len() == 0 {
+            return None;
+        }
+
+        let mut result = Vec::with_capacity(partition.len());
+
+        for db_row in partition.values() {
+            if filter(db_row.as_ref()) {
+                result.push(db_row.clone());
+            }
         }
 
         Some(result)

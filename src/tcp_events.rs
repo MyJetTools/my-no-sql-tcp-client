@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use my_no_sql_tcp_shared::{MyNoSqlReaderTcpSerializer, MyNoSqlTcpContract};
+use my_no_sql_tcp_shared::{
+    sync_to_main::SyncToMainNodelHandler, MyNoSqlReaderTcpSerializer, MyNoSqlTcpContract,
+};
 use my_tcp_sockets::{tcp_connection::SocketConnection, ConnectionEvent, SocketEventCallback};
 
 use crate::subscribers::Subscribers;
@@ -9,13 +11,15 @@ pub type TcpConnection = SocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSe
 pub struct TcpEvents {
     app_name: String,
     pub subscribers: Subscribers,
+    pub sync_handler: Arc<SyncToMainNodelHandler>,
 }
 
 impl TcpEvents {
-    pub fn new(app_name: String) -> Self {
+    pub fn new(app_name: String, sync_handler: Arc<SyncToMainNodelHandler>) -> Self {
         Self {
             app_name,
             subscribers: Subscribers::new(),
+            sync_handler,
         }
     }
     pub async fn handle_incoming_packet(
@@ -67,6 +71,32 @@ impl TcpEvents {
             MyNoSqlTcpContract::Unsubscribe(_) => {}
             MyNoSqlTcpContract::TableNotFound(_) => {}
             MyNoSqlTcpContract::CompressedPayload(_) => {}
+            MyNoSqlTcpContract::Confirmation { confirmation_id } => self
+                .sync_handler
+                .tcp_events_pusher_got_confirmation(confirmation_id),
+            MyNoSqlTcpContract::UpdatePartitionsLastReadTime {
+                confirmation_id: _,
+                table_name: _,
+                partitions: _,
+            } => {}
+            MyNoSqlTcpContract::UpdateRowsLastReadTime {
+                confirmation_id: _,
+                table_name: _,
+                partition_key: _,
+                row_keys: _,
+            } => {}
+            MyNoSqlTcpContract::UpdatePartitionsExpirationTime {
+                confirmation_id: _,
+                table_name: _,
+                partitions: _,
+            } => {}
+            MyNoSqlTcpContract::UpdateRowsExpirationTime {
+                confirmation_id: _,
+                table_name: _,
+                partition_key: _,
+                row_keys: _,
+                expiration_time: _,
+            } => {}
         }
     }
 }
@@ -92,8 +122,14 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer> for Tcp
 
                     connection.send(contract).await;
                 }
+
+                self.sync_handler
+                    .tcp_events_pusher_new_connection_established(connection);
             }
-            ConnectionEvent::Disconnected(_connection) => {}
+            ConnectionEvent::Disconnected(connection) => {
+                self.sync_handler
+                    .tcp_events_pusher_connection_disconnected(connection);
+            }
             ConnectionEvent::Payload {
                 connection,
                 payload,
