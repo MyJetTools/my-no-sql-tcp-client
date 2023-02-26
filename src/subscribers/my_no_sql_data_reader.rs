@@ -87,7 +87,7 @@ where
 
     pub async fn get_entity(
         &self,
-        partition_key: &String,
+        partition_key: &str,
         row_key: &str,
     ) -> Option<Arc<TMyNoSqlEntity>> {
         let reader = self.inner.data.read().await;
