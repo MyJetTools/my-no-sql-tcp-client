@@ -1,6 +1,7 @@
 use std::{
     collections::{BTreeMap, HashMap},
     sync::Arc,
+    time::Duration,
 };
 
 use async_trait::async_trait;
@@ -130,6 +131,19 @@ where
         }
 
         result
+    }
+
+    pub async fn wait_until_first_data_arrives(&self) {
+        loop {
+            {
+                let reader = self.inner.data.read().await;
+                if reader.has_entities_at_all().await {
+                    return;
+                }
+            }
+
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
     }
 }
 

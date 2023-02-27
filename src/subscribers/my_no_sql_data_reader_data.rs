@@ -298,4 +298,8 @@ where
 
         Some(result)
     }
+
+    pub async fn has_entities_at_all(&self) -> bool {
+        self.entities.is_some()
+    }
 }
