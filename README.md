@@ -41,7 +41,7 @@ pub struct TestEntity {
 }
 ```
 
-## 3. Create connectionm exctract reader from the connection and start the connection;
+## 3. Create connection, exctract reader from the connection and start the connection;
 
 ```rust
     let connection = my_no_sql_tcp_reader::MyNoSqlTcpConnection::new(
