@@ -54,3 +54,13 @@ pub struct TestEntity {
     connection.start(my_logger::LOGGER.clone()).await;
 ```
 
+## 4. Get Records from reader
+```rust
+   let entity = reader
+            .get_entity_with_callback_to_server("partition_key", "row_key")
+            .set_row_last_read_moment()
+            .set_partition_last_read_moment()
+            .set_row_expiration_moment(Some(now))
+            .execute()
+            .await;
+```
