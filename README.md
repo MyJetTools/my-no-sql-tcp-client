@@ -56,11 +56,15 @@ pub struct TestEntity {
 
 ## 4. Get Records from reader
 ```rust
+   let entity = reader.get_entity("partition_key", "row_key").await;
+```
+
+## 5. Get Records from reader and update row expiration moment and partition read moment
+```rust
    let entity = reader
             .get_entity_with_callback_to_server("partition_key", "row_key")
             .set_row_last_read_moment()
             .set_partition_last_read_moment()
             .set_row_expiration_moment(Some(now))
             .execute()
-            .await;
-```
+       
