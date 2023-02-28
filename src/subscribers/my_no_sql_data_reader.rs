@@ -101,7 +101,7 @@ where
 
     pub fn get_entity_with_callback_to_server<'s>(
         &'s self,
-        partition_key: &'s String,
+        partition_key: &'s str,
         row_key: &'s str,
     ) -> GetEntityBuilder<TMyNoSqlEntity> {
         GetEntityBuilder::new(partition_key, row_key, self.inner.clone())

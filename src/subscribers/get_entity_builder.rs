@@ -7,7 +7,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 use super::my_no_sql_data_reader::MyNoSqlDataReaderInner;
 
 pub struct GetEntityBuilder<'s, TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
-    partition_key: &'s String,
+    partition_key: &'s str,
     row_key: &'s str,
     update_statistic_data: UpdateEntityStatisticsData,
     inner: Arc<MyNoSqlDataReaderInner<TMyNoSqlEntity>>,
@@ -17,7 +17,7 @@ impl<'s, TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
     GetEntityBuilder<'s, TMyNoSqlEntity>
 {
     pub fn new(
-        partition_key: &'s String,
+        partition_key: &'s str,
         row_key: &'s str,
         inner: Arc<MyNoSqlDataReaderInner<TMyNoSqlEntity>>,
     ) -> Self {
