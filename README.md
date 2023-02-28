@@ -57,6 +57,7 @@ connection.start(my_logger::LOGGER.clone()).await;
 ## 4. Get Records from reader
 ```rust
 let entity = reader.get_entity("partition_key", "row_key").await;
+println!("{:?}", entity);
 ```
 
 ## 5. Get Records from reader and update row expiration moment and partition read moment
@@ -68,4 +69,6 @@ let entity = reader
          .set_row_expiration_moment(Some(now))
          .execute()
          .await;
+         
+println!("{:?}", entity);
 ```
