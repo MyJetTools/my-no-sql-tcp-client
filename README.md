@@ -44,23 +44,31 @@ pub struct TestEntity {
 ## 3. Create connection, exctract reader from the connection and start the connection;
 
 ```rust
-    let connection = my_no_sql_tcp_reader::MyNoSqlTcpConnection::new(
-        "app_name".to_string(),
-        Arc::new(MyNoSqlTcpReaderSettings {}),
-    );
+let connection = my_no_sql_tcp_reader::MyNoSqlTcpConnection::new(
+    "app_name".to_string(),
+    Arc::new(MyNoSqlTcpReaderSettings {}),
+);
 
-    let reader: Arc<MyNoSqlDataReader<TestEntity>> = connection.get_reader().await;
+let reader: Arc<MyNoSqlDataReader<TestEntity>> = connection.get_reader().await;
     
-    connection.start(my_logger::LOGGER.clone()).await;
+connection.start(my_logger::LOGGER.clone()).await;
 ```
 
 ## 4. Get Records from reader
 ```rust
-   let entity = reader
-            .get_entity_with_callback_to_server("partition_key", "row_key")
-            .set_row_last_read_moment()
-            .set_partition_last_read_moment()
-            .set_row_expiration_moment(Some(now))
-            .execute()
-            .await;
+let entity = reader.get_entity("partition_key", "row_key").await;
+println!("{:?}", entity);
+```
+
+## 5. Get Records from reader and update row expiration moment and partition read moment
+```rust
+let entity = reader
+         .get_entity_with_callback_to_server("partition_key", "row_key")
+         .set_row_last_read_moment()
+         .set_partition_last_read_moment()
+         .set_row_expiration_moment(Some(now))
+         .execute()
+         .await;
+         
+println!("{:?}", entity);
 ```
