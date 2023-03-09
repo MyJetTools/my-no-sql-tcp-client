@@ -5,6 +5,8 @@ use std::{
 };
 
 use async_trait::async_trait;
+use my_json::json_reader::array_parser::JsonArrayIterator;
+use my_no_sql_core::db_json_entity::DbJsonEntity;
 use my_no_sql_server_abstractions::MyNoSqlEntity;
 use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodelHandler;
 use rust_extensions::ApplicationStates;
@@ -112,16 +114,48 @@ where
         reader.has_partition(partition_key)
     }
 
-    pub fn deserialize<'s>(&self, data: &[u8]) -> TMyNoSqlEntity {
-        let result = serde_json::from_slice(data).unwrap();
-        result
+    pub fn deserialize_entity<'s>(&self, data: &[u8]) -> TMyNoSqlEntity {
+        let parse_result: Result<TMyNoSqlEntity, _> = serde_json::from_slice(&data);
+
+        match parse_result {
+            Ok(el) => return el,
+            Err(err) => {
+                let db_entity = DbJsonEntity::parse(data);
+
+                match db_entity {
+                    Ok(db_entity) => {
+                        panic!(
+                            "Table: {}. Can not parse entity with PartitionKey: [{}] and RowKey: [{}]. Err: {:?}",
+                             TMyNoSqlEntity::TABLE_NAME, db_entity.partition_key, db_entity.row_key, err
+                        );
+                    }
+                    Err(err) => {
+                        panic!(
+                            "Table: {}. Can not extract partitionKey and rowKey. Looks like entity broken at all. Err: {:?}",
+                            TMyNoSqlEntity::TABLE_NAME, err
+                        )
+                    }
+                }
+            }
+        }
     }
 
     pub fn deserialize_array(&self, data: &[u8]) -> HashMap<String, Vec<TMyNoSqlEntity>> {
-        let elements: Vec<TMyNoSqlEntity> = serde_json::from_slice(data).unwrap();
-
         let mut result = HashMap::new();
-        for el in elements {
+
+        for db_entity in JsonArrayIterator::new(data) {
+            if let Err(err) = &db_entity {
+                panic!(
+                    "Table: {}. The whole array of json entities is broken. Err: {:?}",
+                    TMyNoSqlEntity::TABLE_NAME,
+                    err
+                );
+            }
+
+            let db_entity_data = db_entity.unwrap();
+
+            let el = self.deserialize_entity(db_entity_data);
+
             let partition_key = el.get_partition_key();
             if !result.contains_key(partition_key) {
                 result.insert(partition_key.to_string(), Vec::new());
