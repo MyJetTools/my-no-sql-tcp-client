@@ -6,32 +6,32 @@ use rust_extensions::{
     ApplicationStates,
 };
 
-use super::MyNoSqlDataRaderCallBacks;
+use super::MyNoSqlDataReaderCallBacks;
 
 pub enum PusherEvents<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> {
     InsertedOrReplaced(String, Vec<Arc<TMyNoSqlEntity>>),
     Deleted(String, Vec<Arc<TMyNoSqlEntity>>),
 }
 
-pub struct MyNoSqlDataRaderCallBacksPusher<TMyNoSqlEntity>
+pub struct MyNoSqlDataReaderCallBacksPusher<TMyNoSqlEntity>
 where
     TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
 {
     events_loop: EventsLoop<PusherEvents<TMyNoSqlEntity>>,
 }
 
-impl<TMyNoSqlEntity> MyNoSqlDataRaderCallBacksPusher<TMyNoSqlEntity>
+impl<TMyNoSqlEntity> MyNoSqlDataReaderCallBacksPusher<TMyNoSqlEntity>
 where
     TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
 {
     pub async fn new<
-        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
+        TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
     >(
-        callbacks: Arc<TMyNoSqlDataRaderCallBacks>,
+        callbacks: Arc<TMyNoSqlDataReaderCallBacks>,
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
     ) -> Self {
-        let events_loop_reader = MyNoSqlDataRaderCallBacksSender::new(callbacks, None);
-        let events_loop = EventsLoop::new("MyNoSqlDataRaderCallBacksPusher".to_string());
+        let events_loop_reader = MyNoSqlDataReaderCallBacksSender::new(callbacks, None);
+        let events_loop = EventsLoop::new("MyNoSqlDataReaderCallBacksPusher".to_string());
 
         events_loop
             .register_event_loop(Arc::new(events_loop_reader))
@@ -57,8 +57,8 @@ where
 }
 
 #[async_trait::async_trait]
-impl<TMyNoSqlEntity> MyNoSqlDataRaderCallBacks<TMyNoSqlEntity>
-    for MyNoSqlDataRaderCallBacksPusher<TMyNoSqlEntity>
+impl<TMyNoSqlEntity> MyNoSqlDataReaderCallBacks<TMyNoSqlEntity>
+    for MyNoSqlDataReaderCallBacksPusher<TMyNoSqlEntity>
 where
     TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
 {
@@ -75,20 +75,20 @@ where
     }
 }
 
-pub struct MyNoSqlDataRaderCallBacksSender<
+pub struct MyNoSqlDataReaderCallBacksSender<
     TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
-    TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity>,
+    TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity>,
 > {
-    callbacks: Arc<TMyNoSqlDataRaderCallBacks>,
+    callbacks: Arc<TMyNoSqlDataReaderCallBacks>,
     item: Option<TMyNoSqlEntity>,
 }
 
 impl<
         TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
-        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
-    > MyNoSqlDataRaderCallBacksSender<TMyNoSqlEntity, TMyNoSqlDataRaderCallBacks>
+        TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
+    > MyNoSqlDataReaderCallBacksSender<TMyNoSqlEntity, TMyNoSqlDataReaderCallBacks>
 {
-    pub fn new(callbacks: Arc<TMyNoSqlDataRaderCallBacks>, item: Option<TMyNoSqlEntity>) -> Self {
+    pub fn new(callbacks: Arc<TMyNoSqlDataReaderCallBacks>, item: Option<TMyNoSqlEntity>) -> Self {
         Self { callbacks, item }
     }
 }
@@ -96,9 +96,9 @@ impl<
 #[async_trait::async_trait]
 impl<
         TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
-        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
+        TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
     > EventsLoopTick<PusherEvents<TMyNoSqlEntity>>
-    for MyNoSqlDataRaderCallBacksSender<TMyNoSqlEntity, TMyNoSqlDataRaderCallBacks>
+    for MyNoSqlDataReaderCallBacksSender<TMyNoSqlEntity, TMyNoSqlDataReaderCallBacks>
 {
     async fn tick(&self, model: PusherEvents<TMyNoSqlEntity>) {
         match model {

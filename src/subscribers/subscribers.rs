@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use my_no_sql_server_abstractions::MyNoSqlEntity;
-use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodelHandler;
+use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodeHandler;
 use rust_extensions::ApplicationStates;
 use serde::de::DeserializeOwned;
 use tokio::sync::RwLock;
@@ -23,7 +23,7 @@ impl Subscribers {
         &self,
 
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
-        sync_handler: Arc<SyncToMainNodelHandler>,
+        sync_handler: Arc<SyncToMainNodeHandler>,
     ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>>
     where
         TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
@@ -55,7 +55,7 @@ impl Subscribers {
         Some(result.clone())
     }
 
-    pub async fn get_tables_to_subscirbe(&self) -> Vec<String> {
+    pub async fn get_tables_to_subscribe(&self) -> Vec<String> {
         let read_access = self.subscribers.write().await;
         read_access.keys().map(|itm| itm.to_string()).collect()
     }

@@ -13,7 +13,7 @@ pub use my_no_sql_data_reader_data::MyNoSqlDataReaderData;
 
 pub use get_entities_builder::*;
 pub use get_entity_builder::*;
-pub use my_no_sql_data_reader_callbacks::MyNoSqlDataRaderCallBacks;
-pub use my_no_sql_data_reader_callbacks_pusher::MyNoSqlDataRaderCallBacksPusher;
+pub use my_no_sql_data_reader_callbacks::MyNoSqlDataReaderCallBacks;
+pub use my_no_sql_data_reader_callbacks_pusher::MyNoSqlDataReaderCallBacksPusher;
 pub use subscribers::Subscribers;
 pub use update_event_trait::UpdateEvent;

@@ -3,13 +3,13 @@ use std::{collections::BTreeMap, sync::Arc};
 use my_no_sql_server_abstractions::MyNoSqlEntity;
 use rust_extensions::lazy::LazyVec;
 
-use super::MyNoSqlDataRaderCallBacks;
+use super::MyNoSqlDataReaderCallBacks;
 
 pub async fn trigger_table_difference<
     TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
-    TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity>,
+    TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity>,
 >(
-    callbacks: &TMyNoSqlDataRaderCallBacks,
+    callbacks: &TMyNoSqlDataReaderCallBacks,
     before: Option<BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>>,
     now_entities: &BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>,
 ) {
@@ -25,9 +25,9 @@ pub async fn trigger_table_difference<
 
 pub async fn trigger_brand_new_table<
     TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
-    TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity>,
+    TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity>,
 >(
-    callbacks: &TMyNoSqlDataRaderCallBacks,
+    callbacks: &TMyNoSqlDataReaderCallBacks,
     now_entities: &BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>,
 ) {
     for (partition_key, now_partition) in now_entities {
@@ -46,9 +46,9 @@ pub async fn trigger_brand_new_table<
 
 pub async fn trigger_old_and_new_table_difference<
     TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
-    TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity>,
+    TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity>,
 >(
-    callbacks: &TMyNoSqlDataRaderCallBacks,
+    callbacks: &TMyNoSqlDataReaderCallBacks,
     mut before: BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>,
     now_entities: &BTreeMap<String, BTreeMap<String, Arc<TMyNoSqlEntity>>>,
 ) {
@@ -81,9 +81,9 @@ pub async fn trigger_old_and_new_table_difference<
 
 pub async fn trigger_partition_difference<
     TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
-    TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity>,
+    TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity>,
 >(
-    callbacks: &TMyNoSqlDataRaderCallBacks,
+    callbacks: &TMyNoSqlDataReaderCallBacks,
     partition_key: &str,
     before_partition: Option<BTreeMap<String, Arc<TMyNoSqlEntity>>>,
     now_partition: &BTreeMap<String, Arc<TMyNoSqlEntity>>,
@@ -127,9 +127,9 @@ pub async fn trigger_partition_difference<
 
 pub async fn trigger_brand_new_partition<
     TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static,
-    TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity>,
+    TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity>,
 >(
-    callbacks: &TMyNoSqlDataRaderCallBacks,
+    callbacks: &TMyNoSqlDataReaderCallBacks,
     partition_key: &str,
     partition: &BTreeMap<String, Arc<TMyNoSqlEntity>>,
 ) {
@@ -155,7 +155,7 @@ mod tests {
     use my_no_sql_server_abstractions::MyNoSqlEntity;
     use tokio::sync::Mutex;
 
-    use crate::subscribers::MyNoSqlDataRaderCallBacks;
+    use crate::subscribers::MyNoSqlDataReaderCallBacks;
 
     struct TestCallbacksInner {
         inserted_or_replaced_entities: HashMap<String, Vec<Arc<TestRow>>>,
@@ -178,7 +178,7 @@ mod tests {
     }
 
     #[async_trait::async_trait]
-    impl MyNoSqlDataRaderCallBacks<TestRow> for TestCallbacks {
+    impl MyNoSqlDataReaderCallBacks<TestRow> for TestCallbacks {
         async fn inserted_or_replaced(&self, partition_key: &str, entities: Vec<Arc<TestRow>>) {
             let mut write_access = self.data.lock().await;
             match write_access

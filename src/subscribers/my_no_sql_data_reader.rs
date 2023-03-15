@@ -8,19 +8,19 @@ use async_trait::async_trait;
 use my_json::json_reader::array_parser::JsonArrayIterator;
 use my_no_sql_core::db_json_entity::DbJsonEntity;
 use my_no_sql_server_abstractions::MyNoSqlEntity;
-use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodelHandler;
+use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodeHandler;
 use rust_extensions::ApplicationStates;
 use serde::de::DeserializeOwned;
 use tokio::sync::RwLock;
 
 use super::{
-    GetEntitiesBuilder, GetEntityBuilder, MyNoSqlDataRaderCallBacks, MyNoSqlDataReaderData,
+    GetEntitiesBuilder, GetEntityBuilder, MyNoSqlDataReaderCallBacks, MyNoSqlDataReaderData,
     UpdateEvent,
 };
 
 pub struct MyNoSqlDataReaderInner<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
     data: RwLock<MyNoSqlDataReaderData<TMyNoSqlEntity>>,
-    sync_handler: Arc<SyncToMainNodelHandler>,
+    sync_handler: Arc<SyncToMainNodeHandler>,
 }
 
 impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> MyNoSqlDataReaderInner<TMyNoSqlEntity> {
@@ -28,7 +28,7 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> MyNoSqlDataReaderInn
         &self.data
     }
 
-    pub fn get_sync_handler(&self) -> &Arc<SyncToMainNodelHandler> {
+    pub fn get_sync_handler(&self) -> &Arc<SyncToMainNodeHandler> {
         &self.sync_handler
     }
 }
@@ -43,7 +43,7 @@ where
 {
     pub async fn new(
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
-        sync_handler: Arc<SyncToMainNodelHandler>,
+        sync_handler: Arc<SyncToMainNodeHandler>,
     ) -> Self {
         Self {
             inner: Arc::new(MyNoSqlDataReaderInner {
@@ -63,10 +63,10 @@ where
     }
 
     pub async fn assign_callback<
-        TMyNoSqlDataRaderCallBacks: MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
+        TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
     >(
         &self,
-        callbacks: Arc<TMyNoSqlDataRaderCallBacks>,
+        callbacks: Arc<TMyNoSqlDataReaderCallBacks>,
     ) {
         let mut write_access = self.inner.data.write().await;
         write_access.assign_callback(callbacks).await;
@@ -97,8 +97,14 @@ where
         reader.get_entity(partition_key, row_key)
     }
 
-    pub fn get_entities(&self, partition_key: String) -> GetEntitiesBuilder<TMyNoSqlEntity> {
-        GetEntitiesBuilder::new(partition_key, self.inner.clone())
+    pub fn get_entities<'s>(
+        &self,
+        partition_key: impl rust_extensions::IntoStringOrStr<'s>,
+    ) -> GetEntitiesBuilder<TMyNoSqlEntity> {
+        GetEntitiesBuilder::new(
+            partition_key.into_string_or_str().to_string(),
+            self.inner.clone(),
+        )
     }
 
     pub fn get_entity_with_callback_to_server<'s>(

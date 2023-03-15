@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use my_no_sql_tcp_shared::{
-    sync_to_main::SyncToMainNodelHandler, MyNoSqlReaderTcpSerializer, MyNoSqlTcpContract,
+    sync_to_main::SyncToMainNodeHandler, MyNoSqlReaderTcpSerializer, MyNoSqlTcpContract,
 };
 use my_tcp_sockets::{tcp_connection::SocketConnection, ConnectionEvent, SocketEventCallback};
 
@@ -11,11 +11,11 @@ pub type TcpConnection = SocketConnection<MyNoSqlTcpContract, MyNoSqlReaderTcpSe
 pub struct TcpEvents {
     app_name: String,
     pub subscribers: Subscribers,
-    pub sync_handler: Arc<SyncToMainNodelHandler>,
+    pub sync_handler: Arc<SyncToMainNodeHandler>,
 }
 
 impl TcpEvents {
-    pub fn new(app_name: String, sync_handler: Arc<SyncToMainNodelHandler>) -> Self {
+    pub fn new(app_name: String, sync_handler: Arc<SyncToMainNodeHandler>) -> Self {
         Self {
             app_name,
             subscribers: Subscribers::new(),
@@ -115,7 +115,7 @@ impl SocketEventCallback<MyNoSqlTcpContract, MyNoSqlReaderTcpSerializer> for Tcp
 
                 connection.send(contract).await;
 
-                for table in self.subscribers.get_tables_to_subscirbe().await {
+                for table in self.subscribers.get_tables_to_subscribe().await {
                     let contract = MyNoSqlTcpContract::Subscribe {
                         table_name: table.to_string(),
                     };

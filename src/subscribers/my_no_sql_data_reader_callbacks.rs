@@ -3,14 +3,14 @@ use std::sync::Arc;
 use my_no_sql_server_abstractions::MyNoSqlEntity;
 
 #[async_trait::async_trait]
-pub trait MyNoSqlDataRaderCallBacks<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> {
+pub trait MyNoSqlDataReaderCallBacks<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static> {
     async fn inserted_or_replaced(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>);
     async fn deleted(&self, partition_key: &str, entities: Vec<Arc<TMyNoSqlEntity>>);
 }
 
 #[async_trait::async_trait]
 impl<TMyNoSqlEntity: MyNoSqlEntity + Send + Sync + 'static>
-    MyNoSqlDataRaderCallBacks<TMyNoSqlEntity> for ()
+    MyNoSqlDataReaderCallBacks<TMyNoSqlEntity> for ()
 {
     async fn inserted_or_replaced(
         &self,
