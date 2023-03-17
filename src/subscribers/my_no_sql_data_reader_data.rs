@@ -205,6 +205,24 @@ where
         return Some(entities.clone());
     }
 
+    pub fn get_table_snapshot_as_vec(&self) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
+        let entities = self.entities.as_ref()?;
+
+        if entities.len() == 0 {
+            return None;
+        }
+
+        let mut result = Vec::new();
+
+        for partition in entities.values() {
+            for entity in partition.values() {
+                result.push(entity.clone());
+            }
+        }
+
+        Some(result)
+    }
+
     pub fn get_entity(&self, partition_key: &str, row_key: &str) -> Option<Arc<TMyNoSqlEntity>> {
         let entities = self.entities.as_ref()?;
 

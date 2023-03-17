@@ -62,6 +62,11 @@ where
         return reader.get_table_snapshot();
     }
 
+    pub async fn get_table_snapshot_as_vec(&self) -> Option<Vec<Arc<TMyNoSqlEntity>>> {
+        let reader = self.inner.data.read().await;
+        reader.get_table_snapshot_as_vec()
+    }
+
     pub async fn assign_callback<
         TMyNoSqlDataReaderCallBacks: MyNoSqlDataReaderCallBacks<TMyNoSqlEntity> + Send + Sync + 'static,
     >(
