@@ -9,7 +9,7 @@ use my_json::json_reader::array_parser::JsonArrayIterator;
 use my_no_sql_core::db_json_entity::DbJsonEntity;
 use my_no_sql_server_abstractions::MyNoSqlEntity;
 use my_no_sql_tcp_shared::sync_to_main::SyncToMainNodeHandler;
-use rust_extensions::ApplicationStates;
+use rust_extensions::{ApplicationStates, StrOrString};
 use serde::de::DeserializeOwned;
 use tokio::sync::RwLock;
 
@@ -104,12 +104,9 @@ where
 
     pub fn get_entities<'s>(
         &self,
-        partition_key: impl rust_extensions::IntoStringOrStr<'s>,
+        partition_key: impl Into<StrOrString<'s>>,
     ) -> GetEntitiesBuilder<TMyNoSqlEntity> {
-        GetEntitiesBuilder::new(
-            partition_key.into_string_or_str().to_string(),
-            self.inner.clone(),
-        )
+        GetEntitiesBuilder::new(partition_key.into().to_string(), self.inner.clone())
     }
 
     pub fn get_entity_with_callback_to_server<'s>(
