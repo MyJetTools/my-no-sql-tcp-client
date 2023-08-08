@@ -6,7 +6,9 @@ use my_tcp_sockets::TcpClient;
 use rust_extensions::{AppStates, Logger, StrOrString};
 use serde::de::DeserializeOwned;
 
-use crate::{subscribers::MyNoSqlDataReader, tcp_events::TcpEvents, MyNoSqlTcpConnectionSettings};
+use crate::{
+    subscribers::MyNoSqlDataReaderTcp, tcp_events::TcpEvents, MyNoSqlTcpConnectionSettings,
+};
 
 pub struct TcpConnectionSettings {
     settings: Arc<dyn MyNoSqlTcpConnectionSettings + Sync + Send + 'static>,
@@ -52,7 +54,7 @@ impl MyNoSqlTcpConnection {
         TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
     >(
         &self,
-    ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>> {
+    ) -> Arc<MyNoSqlDataReaderTcp<TMyNoSqlEntity>> {
         self.tcp_events
             .subscribers
             .create_subscriber(

@@ -4,15 +4,17 @@ use my_no_sql_server_abstractions::MyNoSqlEntity;
 use my_no_sql_tcp_shared::sync_to_main::UpdateEntityStatisticsData;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use super::my_no_sql_data_reader::MyNoSqlDataReaderInner;
+use super::super::my_no_sql_data_reader_tcp::MyNoSqlDataReaderInner;
 
-pub struct GetEntitiesBuilder<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
+pub struct GetEntitiesBuilderInner<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> {
     partition_key: String,
     update_statistic_data: UpdateEntityStatisticsData,
     inner: Arc<MyNoSqlDataReaderInner<TMyNoSqlEntity>>,
 }
 
-impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> GetEntitiesBuilder<TMyNoSqlEntity> {
+impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static>
+    GetEntitiesBuilderInner<TMyNoSqlEntity>
+{
     pub fn new(partition_key: String, inner: Arc<MyNoSqlDataReaderInner<TMyNoSqlEntity>>) -> Self {
         Self {
             partition_key,
@@ -21,27 +23,20 @@ impl<TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + 'static> GetEntitiesBuilder<T
         }
     }
 
-    pub fn set_partition_last_read_moment(mut self) -> Self {
+    pub fn set_partition_last_read_moment(&mut self) {
         self.update_statistic_data.partition_last_read_moment = true;
-        self
     }
 
-    pub fn set_row_last_read_moment(mut self) -> Self {
+    pub fn set_row_last_read_moment(&mut self) {
         self.update_statistic_data.row_last_read_moment = true;
-        self
     }
 
-    pub fn set_partition_expiration_moment(
-        mut self,
-        value: Option<DateTimeAsMicroseconds>,
-    ) -> Self {
+    pub fn set_partition_expiration_moment(&mut self, value: Option<DateTimeAsMicroseconds>) {
         self.update_statistic_data.partition_expiration_moment = Some(value);
-        self
     }
 
-    pub fn set_row_expiration_moment(mut self, value: Option<DateTimeAsMicroseconds>) -> Self {
+    pub fn set_row_expiration_moment(&mut self, value: Option<DateTimeAsMicroseconds>) {
         self.update_statistic_data.row_expiration_moment = Some(value);
-        self
     }
 
     pub async fn get_as_vec(&self) -> Option<Vec<Arc<TMyNoSqlEntity>>> {

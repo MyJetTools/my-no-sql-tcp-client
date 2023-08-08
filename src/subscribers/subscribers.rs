@@ -6,7 +6,7 @@ use rust_extensions::ApplicationStates;
 use serde::de::DeserializeOwned;
 use tokio::sync::RwLock;
 
-use super::{MyNoSqlDataReader, UpdateEvent};
+use super::{MyNoSqlDataReaderTcp, UpdateEvent};
 
 pub struct Subscribers {
     subscribers: RwLock<HashMap<String, Arc<dyn UpdateEvent + Send + Sync + 'static>>>,
@@ -24,7 +24,7 @@ impl Subscribers {
 
         app_states: Arc<dyn ApplicationStates + Send + Sync + 'static>,
         sync_handler: Arc<SyncToMainNodeHandler>,
-    ) -> Arc<MyNoSqlDataReader<TMyNoSqlEntity>>
+    ) -> Arc<MyNoSqlDataReaderTcp<TMyNoSqlEntity>>
     where
         TMyNoSqlEntity: MyNoSqlEntity + Sync + Send + DeserializeOwned + 'static,
     {
@@ -37,7 +37,7 @@ impl Subscribers {
             );
         }
 
-        let new_reader = MyNoSqlDataReader::new(app_states, sync_handler).await;
+        let new_reader = MyNoSqlDataReaderTcp::new(app_states, sync_handler).await;
 
         let new_reader = Arc::new(new_reader);
 
